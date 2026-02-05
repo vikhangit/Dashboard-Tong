@@ -66,11 +66,7 @@ export default function BoardDashboard() {
               </Button>
               
               {/* Desktop Menu */}
-              <Link href="/admin" className="hidden md:block">
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <MenuIcon className="h-5 w-5" />
-                </Button>
-              </Link>
+
               
               {/* Mobile Grid Menu */}
               <Button 
@@ -439,20 +435,6 @@ export default function BoardDashboard() {
                 </div>
               </Link>
 
-              <Link href="/admin" onClick={() => setShowMobileMenu(false)}>
-                <div className="glass-card p-4 rounded-xl flex items-center justify-between hover:bg-white/80 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center">
-                      <MenuIcon className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">Cài đặt</p>
-                      <p className="text-xs text-muted-foreground">Cấu hình hệ thống</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </Link>
             </div>
           </div>
         )}

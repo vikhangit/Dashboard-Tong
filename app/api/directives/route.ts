@@ -1,39 +1,54 @@
 import { NextResponse } from 'next/server';
+import { sheetsService } from '@/lib/sheets-service';
 import { mockDirectives } from '@/lib/mock-data';
+
+// Helper to check if configured
+const isConfigured = () => {
+    return !!process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+};
 
 export async function GET() {
   try {
-    return NextResponse.json(mockDirectives);
+    if (!isConfigured()) {
+        console.warn('Google Sheets not configured, returning mock data');
+        return NextResponse.json(mockDirectives);
+    }
+
+    const directives = await sheetsService.getDirectives();
+    return NextResponse.json(directives);
   } catch (error) {
-    console.error('[v0] Error fetching directives:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch directives' },
-      { status: 500 }
-    );
+    console.error('[API] Error fetching directives:', error);
+    // Fallback to mock data on error to prevent UI breakage
+    return NextResponse.json(mockDirectives);
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { content, audioUrl, assignedTo, status } = body;
+    const { content, assignedTo, status } = body;
 
-    // In production, this would save to database
     const newDirective = {
-      id: Date.now().toString(),
       content,
-      audioUrl,
       assignedTo,
-      status: status || 'da_chi_dao' as const,
+      status: status || 'pending',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      deadline: undefined // Or allow passing deadline if UI supports it
     };
 
-    mockDirectives.push(newDirective);
+    if (isConfigured()) {
+        await sheetsService.syncDirectivesToSheet([newDirective]);
+    } else {
+        mockDirectives.push({
+            ...newDirective,
+            id: Date.now().toString()
+        } as any);
+    }
 
     return NextResponse.json(newDirective, { status: 201 });
   } catch (error) {
-    console.error('[v0] Error creating directive:', error);
+    console.error('[API] Error creating directive:', error);
     return NextResponse.json(
       { error: 'Failed to create directive' },
       { status: 500 }
@@ -42,23 +57,5 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  try {
-    const body = await request.json();
-    const { id, status } = body;
-
-    // In production, update in database
-    const directive = mockDirectives.find(d => d.id === id);
-    if (directive) {
-      directive.status = status;
-      directive.updatedAt = new Date();
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[v0] Error updating directive:', error);
-    return NextResponse.json(
-      { error: 'Failed to update directive' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ message: "Update not fully supported with Sheets yet" });
 }

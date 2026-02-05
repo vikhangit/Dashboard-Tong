@@ -1,29 +1,92 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Clock, FileText, Plus, Check, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Directive } from '@/lib/types';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Plus,
+  Check,
+  X,
+  Calendar,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Directive } from "@/lib/types";
+import {
+  formatShortDateTime,
+  formatDate,
+  formatFullDateTime,
+} from "@/lib/utils";
 
 const statusConfig = {
-  da_chi_dao: { label: 'Đã chỉ đạo', color: 'bg-blue-500', icon: FileText },
-  da_tiep_nhan: { label: 'Đã tiếp nhận', color: 'bg-yellow-500', icon: Clock },
-  da_hoan_thanh: { label: 'Đã hoàn thành', color: 'bg-green-500', icon: CheckCircle2 }
+  pending: {
+    label: "Đã chỉ đạo",
+    color: "bg-yellow-500",
+    textColor: "text-yellow-700",
+    icon: FileText,
+  },
+  in_progress: {
+    label: "Đã tiếp nhận",
+    color: "bg-blue-600",
+    textColor: "text-blue-700",
+    icon: Clock,
+  },
+  completed: {
+    label: "Đã hoàn thành",
+    color: "bg-green-600",
+    textColor: "text-green-700",
+    icon: CheckCircle2,
+  },
 };
+
+function ActionContent({ content }: { content: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        setExpanded(!expanded);
+      }}
+      className="mb-3 text-sm border border-border/100 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg overflow-hidden"
+    >
+      <span className="p-4 font-medium bg-slate-100 text-blue-700 block mb-1 text-sm font-bold uppercase tracking-wider flex items-center justify-between">
+        Chi tiết xử lý
+      </span>
+      <p
+        className={`text-foreground/90 whitespace-pre-wrap text-lg py-2 px-4 ${
+          expanded ? "" : "line-clamp-2"
+        }`}
+      >
+        {content}
+      </p>
+    </div>
+  );
+}
 
 export default function DirectivesPage() {
   const [directives, setDirectives] = useState<Directive[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | Directive['status']>('all');
+  const [filter, setFilter] = useState<"all" | Directive["status"]>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newDirective, setNewDirective] = useState({ content: '', assignedTo: '' });
+  const [newDirective, setNewDirective] = useState({
+    content: "",
+    assignedTo: "",
+  });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -32,60 +95,64 @@ export default function DirectivesPage() {
 
   const fetchDirectives = async () => {
     try {
-      const response = await fetch('/api/directives');
+      const response = await fetch("/api/directives");
       const data = await response.json();
       setDirectives(data);
     } catch (error) {
-      console.error('[v0] Error fetching directives:', error);
+      console.error("[v0] Error fetching directives:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredDirectives = filter === 'all' 
-    ? directives 
-    : directives.filter(d => d.status === filter);
+  const filteredDirectives =
+    filter === "all"
+      ? directives
+      : directives.filter((d) => d.status === filter);
 
   const handleAddDirective = async () => {
     if (!newDirective.content.trim()) return;
-    
+
     setSubmitting(true);
     try {
-      const response = await fetch('/api/directives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/directives", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newDirective.content,
           assignedTo: newDirective.assignedTo || undefined,
-          status: 'da_chi_dao'
-        })
+          status: "pending",
+        }),
       });
-      
+
       if (response.ok) {
         await fetchDirectives();
-        setNewDirective({ content: '', assignedTo: '' });
+        setNewDirective({ content: "", assignedTo: "" });
         setIsDialogOpen(false);
       }
     } catch (error) {
-      console.error('[v0] Error adding directive:', error);
+      console.error("[v0] Error adding directive:", error);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: Directive['status']) => {
+  const handleUpdateStatus = async (
+    id: string,
+    status: Directive["status"],
+  ) => {
     try {
-      const response = await fetch('/api/directives', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status })
+      const response = await fetch("/api/directives", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
       });
-      
+
       if (response.ok) {
         await fetchDirectives();
       }
     } catch (error) {
-      console.error('[v0] Error updating directive:', error);
+      console.error("[v0] Error updating directive:", error);
     }
   };
 
@@ -98,27 +165,36 @@ export default function DirectivesPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-holographic">
+    <div className="min-h-screen bg-background/50">
       {/* Header */}
-      <header className="glass-card border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/80 border-b shadow-sm">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
             <Link href="/">
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-muted/50 -ml-2"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-foreground">Chỉ đạo công việc</h1>
-              <p className="text-sm text-muted-foreground">
-                Quản lý và theo dõi các chỉ đạo
-              </p>
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">
+                Chỉ đạo công việc
+              </h1>
             </div>
+          </div>
+
+          <div className="flex items-center gap-4">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button
+                  size="sm"
+                  className="gap-2 rounded-full shadow-lg shadow-primary/20"
+                >
                   <Plus className="h-4 w-4" />
-                  Thêm chỉ đạo
+                  <span className="hidden sm:inline">Thêm mới</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
@@ -132,8 +208,14 @@ export default function DirectivesPage() {
                       id="content"
                       placeholder="Nhập nội dung chỉ đạo..."
                       value={newDirective.content}
-                      onChange={(e) => setNewDirective({ ...newDirective, content: e.target.value })}
+                      onChange={(e) =>
+                        setNewDirective({
+                          ...newDirective,
+                          content: e.target.value,
+                        })
+                      }
                       rows={4}
+                      className="resize-none"
                     />
                   </div>
                   <div className="space-y-2">
@@ -142,15 +224,26 @@ export default function DirectivesPage() {
                       id="assignedTo"
                       placeholder="Tên người thực hiện"
                       value={newDirective.assignedTo}
-                      onChange={(e) => setNewDirective({ ...newDirective, assignedTo: e.target.value })}
+                      onChange={(e) =>
+                        setNewDirective({
+                          ...newDirective,
+                          assignedTo: e.target.value,
+                        })
+                      }
                     />
                   </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
                       Hủy
                     </Button>
-                    <Button onClick={handleAddDirective} disabled={submitting || !newDirective.content.trim()}>
-                      {submitting ? 'Đang lưu...' : 'Thêm chỉ đạo'}
+                    <Button
+                      onClick={handleAddDirective}
+                      disabled={submitting || !newDirective.content.trim()}
+                    >
+                      {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
                     </Button>
                   </div>
                 </div>
@@ -161,82 +254,108 @@ export default function DirectivesPage() {
       </header>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 px-4 scrollbar-hide snap-x">
           <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => setFilter('all')}
-            className="whitespace-nowrap glass-card"
+            variant={filter === "all" ? "default" : "outline"}
+            onClick={() => setFilter("all")}
+            className="whitespace-nowrap rounded-full snap-start"
+            size="sm"
           >
-            Tất cả ({directives.length})
+            Tất cả
           </Button>
           {Object.entries(statusConfig).map(([key, config]) => {
-            const count = directives.filter(d => d.status === key).length;
+            const count = directives.filter((d) => d.status === key).length;
+            const isActive = filter === key;
             return (
               <Button
                 key={key}
-                variant={filter === key ? 'default' : 'outline'}
-                onClick={() => setFilter(key as Directive['status'])}
-                className="whitespace-nowrap glass-card"
+                variant="outline"
+                onClick={() => setFilter(key as Directive["status"])}
+                className={`whitespace-nowrap rounded-full snap-start border transition-colors ${
+                  isActive
+                    ? `${config.color} text-white hover:opacity-90 border-transparent shadow-sm`
+                    : `${config.textColor} border-current/20 bg-background hover:bg-accent hover:text-accent-foreground`
+                }`}
+                size="sm"
               >
-                {config.label} ({count})
+                {config.label}{" "}
+                <span
+                  className={`ml-1 ${isActive ? "text-white/80" : "opacity-70"}`}
+                >
+                  ({count})
+                </span>
               </Button>
             );
           })}
         </div>
 
         {/* Directives List */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredDirectives.length === 0 ? (
-            <Card className="glass-card p-12 text-center">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                <FileText className="h-8 w-8 text-muted-foreground/50" />
+              </div>
               <p className="text-muted-foreground">Không có chỉ đạo nào</p>
-            </Card>
+            </div>
           ) : (
             filteredDirectives.map((directive) => {
-              const config = statusConfig[directive.status];
+              const config =
+                statusConfig[directive.status] || statusConfig.pending;
               const StatusIcon = config.icon;
-              
+
               return (
-                <Card key={directive.id} className="glass-card p-5 hover:shadow-lg transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className={`${config.color} rounded-xl p-2.5 text-white shrink-0`}>
-                      <StatusIcon className="h-5 w-5" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <p className="text-base font-medium text-foreground leading-relaxed">
-                          {directive.content}
-                        </p>
-                        <Badge variant="secondary" className="whitespace-nowrap">
+                <div
+                  key={directive.id}
+                  className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                  />
+
+                  <div className="p-4 pl-5">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-6`}
+                        >
+                          <StatusIcon className="w-3 h-3 mr-1" />
                           {config.label}
                         </Badge>
                       </div>
-                      
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                        <span>
-                          {new Date(directive.createdAt).toLocaleDateString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                      <span className="text-base text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatShortDateTime(directive.createdAt)}
+                      </span>
+                    </div>
+
+                    <p className="text-xl text-foreground leading-relaxed mb-3 font-medium">
+                      {directive.content}
+                    </p>
+
+                    {directive.actionContent && (
+                      <ActionContent content={directive.actionContent} />
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs text-muted-foreground">
+                      {directive.assignedTo && (
+                        <span className="flex items-center gap-1 font-medium text-foreground/80 text-base">
+                          <span className="w-1 h-1 rounded-full bg-border" />
+                          {directive.assignedTo}
                         </span>
-                        {directive.assignedTo && (
-                          <>
-                            <span>•</span>
-                            <span>Người thực hiện: {directive.assignedTo}</span>
-                          </>
-                        )}
-                      </div>
-
-
+                      )}
+                      {directive.deadline && (
+                        <span className="flex items-center gap-1 text-red-500 font-medium text-base">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {formatDate(directive.deadline)}
+                        </span>
+                      )}
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })
           )}
