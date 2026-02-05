@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Mic, Square } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useEffect } from "react";
+import { Mic, Square, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface VoiceRecorderProps {
   onRecordingComplete: (transcript: string, audioBlob?: Blob) => void;
+  className?: string;
+  isParentProcessing?: boolean;
 }
 
-export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
+export function VoiceRecorder({
+  onRecordingComplete,
+  className = "",
+  isParentProcessing = false,
+}: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -17,69 +23,73 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setIsProcessing(true);
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        // Instead of processing text immediately, we pass the blob up
+        // or we could handle it here, but the props say 'transcript: string'
+        // Let's modify the requirement: we need to pass the BLOB, or handle async logic here.
+        // But the prop `onRecordingComplete` expects a transcript string immediately in current interface?
+        // Wait, current interface is `(transcript: string) => void`.
+        // We probably need to change the prop signature OR change how this works.
+        // Actually, let's keep it simple: We will do the API call HERE if we want to extract text,
+        // OR we change the parent to accept a Blob.
+        // The Plan said: "Update onRecordingComplete signature to return audioBlob"
+        // Let's coerce TS for a moment or better update the interface in the file.
 
-        try {
-          // In production, send audio to AI transcription service
-          // const formData = new FormData();
-          // formData.append('audio', audioBlob);
-          // const response = await fetch('/api/ai/transcribe', {
-          //   method: 'POST',
-          //   body: formData
-          // });
-          // const { text } = await response.json();
+        // Actually, let's just pass the blob to the parent if the parent is updated.
+        // But the parent expects a string right now.
+        // Let's do a quick hack: we will emit an empty string + the blob, OR we change the interface now.
+        // I will update the interface right above this function first.
 
-          // For now, simulate AI processing
-          setTimeout(() => {
-            const mockTranscript = 'Hoàn thành báo cáo và gửi email cho khách hàng trước 5pm';
-            onRecordingComplete(mockTranscript, audioBlob);
-            setIsProcessing(false);
-          }, 1500);
-        } catch (error) {
-          console.error('[v0] Error processing audio:', error);
-          setIsProcessing(false);
-        }
+        onRecordingComplete("", audioBlob);
+        setIsRecording(false);
+        setIsProcessing(false);
 
-        stream.getTracks().forEach(track => track.stop());
+        // Stop all tracks
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (error) {
-      console.error('[v0] Error starting recording:', error);
-      alert('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      alert("Không thể truy cập microphone.");
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      setIsProcessing(true); // temporary state before "stop" event fires
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
     }
   };
 
   return (
-    <div className="relative flex items-center justify-center">
-      {/* Animated rings */}
-      <div className={`absolute inset-0 rounded-full border-4 border-primary/30 ${isRecording ? 'animate-ping' : ''}`} 
-           style={{ animationDuration: '2s' }} />
-      <div className={`absolute inset-2 rounded-full border-2 border-accent/40 ${isRecording ? 'animate-pulse' : ''}`} />
-      
-      {/* Holographic orb background */}
-      <div className="absolute inset-0 rounded-full gradient-orb animate-pulse-slow" />
-      
+    <div className={`relative flex items-center justify-center ${className}`}>
+      {/* Animated rings - Only show when recording */}
+      {isRecording && (
+        <>
+          <div
+            className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping"
+            style={{ animationDuration: "2s" }}
+          />
+          <div className="absolute inset-2 rounded-full border-2 border-accent/40 animate-pulse" />
+          <div className="absolute inset-0 rounded-full gradient-orb animate-pulse-slow" />
+        </>
+      )}
+
       {/* Main button */}
       <Button
         size="lg"
@@ -88,29 +98,30 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
         className={`
           relative z-10 h-48 w-48 rounded-full border-4 border-white/50 text-lg font-semibold
           shadow-2xl transition-all duration-300
-          ${isRecording 
-            ? 'bg-gradient-to-br from-red-400 to-pink-500 hover:from-red-500 hover:to-pink-600 scale-105' 
-            : isProcessing
-            ? 'bg-gradient-to-br from-blue-400 to-cyan-500 animate-pulse'
-            : 'bg-gradient-to-br from-purple-400 via-blue-400 to-green-400 hover:scale-105'
+          ${
+            isRecording
+              ? "bg-gradient-to-br from-red-400 to-pink-500 hover:from-red-500 hover:to-pink-600 scale-105"
+              : isProcessing
+                ? "bg-gradient-to-br from-blue-400 to-cyan-500 animate-pulse"
+                : "bg-gradient-to-br from-purple-400 via-blue-400 to-green-400 hover:scale-105"
           }
         `}
       >
         <div className="flex flex-col items-center gap-2">
           {isRecording ? (
             <>
-              <Square className="h-12 w-12 fill-current" />
+              <Square className="size-8 fill-current" />
               <span className="text-sm">Dừng lại</span>
             </>
-          ) : isProcessing ? (
+          ) : isProcessing || isParentProcessing ? (
             <>
-              <div className="h-12 w-12 rounded-full border-4 border-white/50 border-t-white animate-spin" />
-              <span className="text-sm">Đang xử lý...</span>
+              <Loader2 className="size-8 animate-spin" />
+              <span className="text-sm">Đang phân tích...</span>
             </>
           ) : (
             <>
-              <Mic className="h-12 w-12" />
-              <span className="text-sm">Bấm để bắt đầu...</span>
+              <Mic className="size-12" />
+              <span className="text-sm">Nói để chỉ đạo...</span>
             </>
           )}
         </div>

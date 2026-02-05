@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,8 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-sans), 'Arial', sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -126,7 +126,8 @@
 
 @layer utilities {
   .gradient-holographic {
-    background: linear-gradient(135deg, 
+    background: linear-gradient(
+      135deg,
       rgba(168, 85, 247, 0.15) 0%,
       rgba(147, 197, 253, 0.15) 25%,
       rgba(134, 239, 172, 0.15) 50%,
@@ -134,9 +135,10 @@
       rgba(196, 181, 253, 0.15) 100%
     );
   }
-  
+
   .gradient-orb {
-    background: radial-gradient(circle at 50% 50%, 
+    background: radial-gradient(
+      circle at 50% 50%,
       rgba(168, 85, 247, 0.4) 0%,
       rgba(147, 197, 253, 0.35) 25%,
       rgba(134, 239, 172, 0.3) 50%,
@@ -145,21 +147,21 @@
     );
     filter: blur(60px);
   }
-  
+
   .glass-card {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.3);
   }
-  
+
   .animate-pulse-slow {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  
+
   .animate-spin-slow {
     animation: spin 8s linear infinite;
   }
-  
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }

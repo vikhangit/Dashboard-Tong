@@ -1,9 +1,17 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 /**
  * AI Analysis Service
  * 
  * Provides AI-powered features for the work management system.
  * In production, this would integrate with OpenAI, Claude, or other AI APIs.
  */
+
+export interface DirectiveParsed {
+  content: string;
+  assignedTo?: string;
+  originalRequest: string;
+}
 
 export interface TranscriptionResult {
   text: string;
@@ -28,29 +36,137 @@ export interface ProductivityInsight {
 }
 
 class AIService {
+  private genAI: GoogleGenerativeAI | null = null;
+  private model: any = null;
+
+  constructor() {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (apiKey) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    }
+  }
+
+  /**
+   * Parse a natural language directive into structured data
+   */
+  async parseDirective(text: string): Promise<DirectiveParsed> {
+    console.log('[AI Service] Parsing directive:', text);
+
+    if (!text) {
+      throw new Error('Text is required');
+    }
+
+    // Fallback to simple regex if no API key or if API fails
+    if (!this.model) {
+      console.warn('[AI Service] Gemini API key not found, using basic regex parsing');
+      return this.parseDirectiveFallback(text);
+    }
+
+    try {
+      const prompt = `
+        Accurately parse the following work directive from a manager in Vietnamese.
+        Extract the "content" (what needs to be done) and "assignedTo" (who is responsible).
+        
+        Input: "${text}"
+        
+        Rules:
+        1. "assignedTo" is the person's name (e.g., Nam, Tuan, Em Huong). If not specified, return null.
+        2. "content" is the core task description. Remove phrases like "giao cho", "nhờ", "bảo".
+        3. Return strictly JSON format: { "content": "...", "assignedTo": "..." }
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const textResponse = response.text();
+      
+      // Clean up markdown code blocks if present
+      const jsonStr = textResponse.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+
+      return {
+        content: parsed.content || text,
+        assignedTo: parsed.assignedTo || undefined,
+        originalRequest: text
+      };
+
+    } catch (error) {
+      console.error('[AI Service] Gemini API error:', error);
+      return this.parseDirectiveFallback(text);
+    }
+  }
+
+  private parseDirectiveFallback(text: string): DirectiveParsed {
+    // Simple regex heuristic for "Giao cho [Name] [Task]"
+    const assignPatterns = [
+      /giao cho\s+([A-Z][a-z\s]+?)\s+(?:làm|thực hiện|kiểm tra|xử lý)?\s*(.*)/i,
+      /nhờ\s+([A-Z][a-z\s]+?)\s+(?:làm|thực hiện|kiểm tra|xử lý)?\s*(.*)/i,
+      /bảo\s+([A-Z][a-z\s]+?)\s+(?:làm|thực hiện|kiểm tra|xử lý)?\s*(.*)/i
+    ];
+
+    for (const pattern of assignPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        // match[1] is name, match[2] is remainder
+        // Or sometimes the order is reversed in Vietnamese speech?
+        // Let's assume standard "Giao cho Nam làm XYZ"
+        
+        // If the captured name is very long (likely missed the boundary), fallback
+        if (match[1].length < 20) {
+           return {
+            assignedTo: match[1].trim(),
+            content: match[2].trim() || text, // If remainder is empty, use full text? No, that's weird.
+            originalRequest: text
+          };
+        }
+       
+      }
+    }
+
+    return {
+      content: text,
+      originalRequest: text
+    };
+  }
+
   /**
    * Transcribe audio to text using speech-to-text AI
    */
-  async transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
-    console.log('[v0] Transcribing audio...');
+  async transcribeAudio(audioBase64: string): Promise<TranscriptionResult> {
+    console.log('[AI Service] Transcribing audio with Gemini...');
 
-    // In production: Use OpenAI Whisper, Google Speech-to-Text, or similar
-    // const formData = new FormData();
-    // formData.append('file', audioBlob);
-    // const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
-    //   body: formData
-    // });
+    if (!this.model) {
+      console.warn('[AI Service] Gemini API key not found, returning mock');
+       return {
+        text: 'Chức năng đang chạy ở chế độ demo do thiếu API Key. Vui lòng cấu hình GEMINI_API_KEY.',
+        confidence: 0,
+        language: 'vi'
+      };
+    }
 
-    // Mock result for demonstration
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    return {
-      text: 'Hoàn thành báo cáo quý 1 và gửi cho ban giám đốc trước ngày 15',
-      confidence: 0.95,
-      language: 'vi'
-    };
+    try {
+      const result = await this.model.generateContent([
+        {
+          inlineData: {
+            mimeType: "audio/webm",
+            data: audioBase64
+          }
+        },
+        { text: "Please transcribe this audio accurately in Vietnamese. Return only the text." }
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+
+      return {
+        text: text.trim(),
+        confidence: 0.95, // Gemini doesn't return confidence scores in this mode easily
+        language: 'vi'
+      };
+    } catch (error) {
+      console.error('[AI Service] Gemini Transcription Error:', error);
+      throw error;
+    }
   }
 
   /**

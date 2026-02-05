@@ -2,10 +2,12 @@ export interface Directive {
   id: string;
   content: string;
   audioUrl?: string;
-  status: 'da_chi_dao' | 'da_tiep_nhan' | 'da_hoan_thanh';
+  status: 'pending' | 'in_progress' | 'completed';
   createdAt: Date;
   updatedAt: Date;
   assignedTo?: string;
+  deadline?: Date;
+  actionContent?: string;
 }
 
 export interface Task {
@@ -36,7 +38,8 @@ export interface Proposal {
   id: string;
   title: string;
   description: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  directionContent?: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'directed';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,9 +66,9 @@ export interface Plan {
 
 export interface Statistics {
   directives: {
-    da_chi_dao: number;
-    da_tiep_nhan: number;
-    da_hoan_thanh: number;
+    pending: number;
+    in_progress: number;
+    completed: number;
     total: number;
   };
   tasks: {

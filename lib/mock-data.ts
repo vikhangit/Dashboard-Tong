@@ -4,25 +4,29 @@ export const mockDirectives: Directive[] = [
   {
     id: '1',
     content: 'Hoàn thành báo cáo tháng 1',
-    status: 'da_hoan_thanh',
+    status: 'completed',
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-20'),
-    assignedTo: 'Nguyễn Văn A'
+    assignedTo: 'Nguyễn Văn A',
+    deadline: new Date('2024-01-25'),
+    actionContent: 'Đã hoàn thành báo cáo, gửi qua email cho giám đốc.'
   },
   {
     id: '2',
     content: 'Chuẩn bị kế hoạch quý 2',
-    status: 'da_tiep_nhan',
+    status: 'in_progress',
     createdAt: new Date('2024-01-18'),
     updatedAt: new Date('2024-01-18'),
-    assignedTo: 'Trần Thị B'
+    assignedTo: 'Trần Thị B',
+    deadline: new Date('2024-01-30')
   },
   {
     id: '3',
     content: 'Xem xét đề xuất dự án mới',
-    status: 'da_chi_dao',
+    status: 'pending',
     createdAt: new Date('2024-01-22'),
-    updatedAt: new Date('2024-01-22')
+    updatedAt: new Date('2024-01-22'),
+    deadline: new Date('2024-02-05')
   }
 ];
 
@@ -155,9 +159,9 @@ export const mockPlans: Plan[] = [
 export function calculateStatistics(): Statistics {
   return {
     directives: {
-      da_chi_dao: mockDirectives.filter(d => d.status === 'da_chi_dao').length,
-      da_tiep_nhan: mockDirectives.filter(d => d.status === 'da_tiep_nhan').length,
-      da_hoan_thanh: mockDirectives.filter(d => d.status === 'da_hoan_thanh').length,
+      pending: mockDirectives.filter(d => d.status === 'pending').length,
+      in_progress: mockDirectives.filter(d => d.status === 'in_progress').length,
+      completed: mockDirectives.filter(d => d.status === 'completed').length,
       total: mockDirectives.length
     },
     tasks: {
