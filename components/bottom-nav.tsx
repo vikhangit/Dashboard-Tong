@@ -8,7 +8,7 @@ interface BottomNavProps {
 
 export function BottomNav({ showDashboard, setShowDashboard }: BottomNavProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 glass-card border-t pt-3 px-3 pb-[env(safe-area-inset-bottom,12px)] z-50 bg-white/80 backdrop-blur-md">
+    <div className="fixed bottom-0 left-0 right-0 glass-card border-t pt-2 px-3 pb-[env(safe-area-inset-bottom,2px)] z-50 bg-white/80 backdrop-blur-md">
       <div className="container mx-auto flex items-center justify-around gap-2 pb-2">
         <button
           onClick={() => setShowDashboard(false)}
