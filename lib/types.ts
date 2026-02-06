@@ -2,7 +2,7 @@ export interface Directive {
   id: string;
   content: string;
   audioUrl?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: "pending" | "in_progress" | "completed";
   createdAt: Date;
   updatedAt: Date;
   assignedTo?: string;
@@ -14,8 +14,8 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
+  status: "pending" | "in_progress" | "completed";
+  priority: "low" | "medium" | "high";
   dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +26,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'planning' | 'active' | 'completed' | 'on_hold';
+  status: "planning" | "active" | "completed" | "on_hold";
   progress: number;
   startDate: Date;
   endDate?: Date;
@@ -39,19 +39,19 @@ export interface Proposal {
   title: string;
   description: string;
   directionContent?: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'directed';
+  status: "draft" | "submitted" | "approved" | "rejected" | "directed";
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface Incident {
   id: string;
-  title: string;       // Sự cố
+  title: string; // Sự cố
   description: string; // Chi tiết
-  severity: 'low' | 'medium' | 'high' | 'critical'; // Mức độ
-  status: 'open' | 'directed' | 'in_progress' | 'resolved'; // Trạng thái
-  createdAt: Date;     // Thời gian tạo
-  updatedAt: Date;     // Thời gian cập nhật
+  severity: "low" | "medium" | "high" | "critical"; // Mức độ
+  status: "open" | "directed" | "in_progress" | "resolved"; // Trạng thái
+  createdAt: Date; // Thời gian tạo
+  updatedAt: Date; // Thời gian cập nhật
   directionContent?: string; // Chỉ đạo
 }
 
@@ -59,7 +59,7 @@ export interface Plan {
   id: string;
   title: string;
   description: string;
-  status: 'draft' | 'active' | 'completed';
+  status: "draft" | "active" | "completed";
   startDate: Date;
   endDate?: Date;
   createdAt: Date;
@@ -120,7 +120,14 @@ export interface DashboardCard {
   id: string;
   title: string;
   icon: string;
-  type: 'directives' | 'tasks' | 'projects' | 'proposals' | 'incidents' | 'plans' | 'analysis';
+  type:
+    | "directives"
+    | "tasks"
+    | "projects"
+    | "proposals"
+    | "incidents"
+    | "plans"
+    | "analysis";
   enabled: boolean;
   order: number;
 }

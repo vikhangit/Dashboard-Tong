@@ -172,13 +172,12 @@ export default function HomePage() {
   // Mobile Minimalist View
   if (isMobile && !showDashboard) {
     return (
-      <div className="min-h-screen gradient-holographic flex flex-col">
-        {/* Minimal Header */}
+      <div className="min-h-screen gradient-holographic flex flex-col relative">
         {/* Minimal Header */}
         <AppHeader />
 
         {/* Dashboard Category Tiles - 2 rows x 4 columns */}
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-3 pb-2 z-0">
           <div className="grid grid-cols-3 gap-2">
             {/* Row 1 */}
 
@@ -189,7 +188,7 @@ export default function HomePage() {
               iconColor="text-purple-600"
               // count={statistics.directives.pending}
             />
-            
+
             <DashboardShortcut
               href="/tasks"
               icon={Briefcase}
@@ -240,68 +239,73 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Main Content - Voice Only (Chat moved to separate page) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 flex flex-col items-center justify-center p-6">
-              {!lastTranscript && !showSuccess && (
-                <h2 className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wide text-center">
-                  Chỉ đạo công việc
-                </h2>
-              )}
-              {showSuccess && (
-                <div className="glass-card mb-6 p-3 rounded-xl animate-in fade-in slide-in-from-bottom-4">
-                  <p className="text-sm font-medium text-green-700">
-                    Đã ghi nhận chỉ đạo thành công!
-                  </p>
-                </div>
-              )}
+        {/* Main Content - Voice Only - Fixed Layout Overlay */}
+        {/* We use a fixed container overlaying the content, positioned above the bottom nav */}
+        {/* Assuming BottomNav is roughly 60-80px. using bottom-20 (5rem/80px) to be safe or checking BottomNav */}
+        <div className="fixed inset-x-0 bottom-[80px] top-[280px] flex flex-col justify-end items-center pointer-events-none z-10 px-4 pb-4">
+          <div className="w-full max-w-sm flex flex-col items-center gap-4 pointer-events-auto">
+            {/* Label */}
+            {!lastTranscript && !showSuccess && (
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
+                Chỉ đạo công việc
+              </h2>
+            )}
 
-              {/* Transcript Editor - Compact & Above Recorder */}
-              {lastTranscript && (
-                <div className="w-full max-w-sm mx-auto mb-4 animate-in fade-in slide-in-from-bottom-2 relative group">
-                  <Textarea
-                    value={lastTranscript}
-                    onChange={(e) => setLastTranscript(e.target.value)}
-                    className="min-h-[100px] p-3 pr-10 rounded-xl bg-white/60 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
-                    placeholder="Nội dung chỉ đạo..."
-                  />
+            {/* Success Message */}
+            {showSuccess && (
+              <div className="glass-card p-3 rounded-xl animate-in fade-in slide-in-from-bottom-4 shadow-lg">
+                <p className="text-sm font-medium text-green-700">
+                  Đã ghi nhận chỉ đạo thành công!
+                </p>
+              </div>
+            )}
 
-                  {/* Clear Button */}
+            {/* Transcript Editor */}
+            {lastTranscript && (
+              <div className="w-full animate-in fade-in slide-in-from-bottom-2 relative group shadow-lg rounded-xl">
+                <Textarea
+                  value={lastTranscript}
+                  onChange={(e) => setLastTranscript(e.target.value)}
+                  className="min-h-[100px] p-3 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                  placeholder="Nội dung chỉ đạo..."
+                />
+
+                {/* Clear Button */}
+                <Button
+                  onClick={handleCancelDirective}
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full"
+                  title="Xóa nội dung"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+
+                {/* Send Button */}
+                <div className="absolute bottom-2 right-2">
                   <Button
-                    onClick={handleCancelDirective}
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full"
-                    title="Xóa nội dung"
+                    onClick={handleSendDirective}
+                    disabled={isSending}
+                    size="sm"
+                    className="h-7 px-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs"
                   >
-                    <X className="h-4 w-4" />
+                    {isSending ? (
+                      <>
+                        Đang gửi...{" "}
+                        <Loader2 className="ml-1 h-3 w-3 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        Gửi <Send className="ml-1 h-3 w-3" />
+                      </>
+                    )}
                   </Button>
-
-                  {/* Send Button */}
-                  <div className="absolute bottom-2 right-2">
-                    <Button
-                      onClick={handleSendDirective}
-                      disabled={isSending}
-                      size="sm"
-                      className="h-7 px-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs"
-                    >
-                      {isSending ? (
-                        <>
-                          Đang gửi...{" "}
-                          <Loader2 className="ml-1 h-3 w-3 animate-spin" />
-                        </>
-                      ) : (
-                        <>
-                          Gửi <Send className="ml-1 h-3 w-3" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Voice Recorder - Always Visible */}
+            {/* Voice Recorder - Always at the bottom of the stack */}
+            <div className="mt-2">
               <VoiceRecorder
                 onRecordingComplete={handleRecordingComplete}
                 isParentProcessing={isTranscribing}
@@ -310,7 +314,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom Navigation */}
         {/* Bottom Navigation */}
         <BottomNav
           showDashboard={showDashboard}
@@ -379,8 +382,8 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Voice Recorder - Always Visible */}
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-8 relative">
+              {/* Added relative here just in case, but desktop flow is less critical for fix as per user requirements for mobile 'pushing' */}
               <VoiceRecorder
                 onRecordingComplete={handleRecordingComplete}
                 isParentProcessing={isTranscribing}
