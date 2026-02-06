@@ -8,8 +8,11 @@ import {
   Lightbulb,
   Pencil,
   MessageSquare,
+  Mic,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Incident } from "@/lib/types";
@@ -56,6 +59,26 @@ export default function IncidentsPage() {
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [recordingIncidentId, setRecordingIncidentId] = useState<string | null>(
+    null,
+  );
+
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceRecorder({
+      onTranscriptionComplete: (text) => {
+        if (recordingIncidentId) {
+          setEditContent((prev) =>
+            editingId === recordingIncidentId ? prev + " " + text : text,
+          );
+          setEditingId(recordingIncidentId);
+          setRecordingIncidentId(null);
+        }
+      },
+      onError: (err) => {
+        console.error("Recording error:", err);
+        setRecordingIncidentId(null);
+      },
+    });
 
   const filteredIncidents =
     filter === "all" ? incidents : incidents.filter((i) => i.status === filter);
@@ -308,11 +331,61 @@ export default function IncidentsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => startEditing(incident)}
-                          className="gap-1.5 text-purple-600 hover:bg-purple-50"
+                          onClick={() => {
+                            if (
+                              isRecording &&
+                              recordingIncidentId === incident.id
+                            ) {
+                              stopRecording();
+                            } else {
+                              setRecordingIncidentId(incident.id);
+                              startRecording();
+                            }
+                          }}
+                          disabled={
+                            (isRecording &&
+                              recordingIncidentId !== incident.id) ||
+                            (isTranscribing &&
+                              recordingIncidentId !== incident.id)
+                          }
+                          className={cn(
+                            "gap-1.5 transition-all duration-500 ease-in-out",
+                            (isRecording &&
+                              recordingIncidentId === incident.id) ||
+                              (isTranscribing &&
+                                recordingIncidentId === incident.id)
+                              ? "w-auto"
+                              : "text-purple-600 hover:bg-purple-50",
+                            isRecording && recordingIncidentId === incident.id
+                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
+                              : isTranscribing &&
+                                  recordingIncidentId === incident.id
+                                ? "bg-blue-50 text-blue-600 border-blue-200"
+                                : "",
+                          )}
                         >
-                          <Lightbulb className="h-3.5 w-3.5" />
-                          Chỉ đạo
+                          {isRecording &&
+                          recordingIncidentId === incident.id ? (
+                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                              <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                              <span className="whitespace-nowrap">
+                                Đang nghe...
+                              </span>
+                            </div>
+                          ) : isTranscribing &&
+                            recordingIncidentId === incident.id ? (
+                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span className="whitespace-nowrap">
+                                Đang xử lý...
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                              <Mic className="h-3.5 w-3.5" />
+                              <span className="whitespace-nowrap">Chỉ đạo</span>
+                            </div>
+                          )}
                         </Button>
                       )}
                   </div>

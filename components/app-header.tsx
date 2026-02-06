@@ -12,7 +12,7 @@ export function AppHeader() {
               <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-cyan-400 border-2 border-white" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-primary">
+              <div className="text-base font-semibold text-primary">
                 APEC GLOBAL
               </div>
             </div>
@@ -22,9 +22,9 @@ export function AppHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full h-8 w-8 relative"
+              className="rounded-full h-9 w-9 relative"
             >
-              <Bell className="h-4 w-4" />
+              <Bell className="size-6" />
             </Button>
           </div>
         </div>

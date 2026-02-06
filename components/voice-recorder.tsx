@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 
 interface VoiceRecorderProps {
   onRecordingComplete: (transcript: string, audioBlob?: Blob) => void;
@@ -15,66 +15,13 @@ export function VoiceRecorder({
   className = "",
   isParentProcessing = false,
 }: VoiceRecorderProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const { isRecording, startRecording, stopRecording } = useVoiceRecorder({
+    onRecordingComplete: (audioBlob) => {
+      onRecordingComplete("", audioBlob);
+    },
+  });
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm",
-      });
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
-        // Instead of processing text immediately, we pass the blob up
-        // or we could handle it here, but the props say 'transcript: string'
-        // Let's modify the requirement: we need to pass the BLOB, or handle async logic here.
-        // But the prop `onRecordingComplete` expects a transcript string immediately in current interface?
-        // Wait, current interface is `(transcript: string) => void`.
-        // We probably need to change the prop signature OR change how this works.
-        // Actually, let's keep it simple: We will do the API call HERE if we want to extract text,
-        // OR we change the parent to accept a Blob.
-        // The Plan said: "Update onRecordingComplete signature to return audioBlob"
-        // Let's coerce TS for a moment or better update the interface in the file.
-
-        // Actually, let's just pass the blob to the parent if the parent is updated.
-        // But the parent expects a string right now.
-        // Let's do a quick hack: we will emit an empty string + the blob, OR we change the interface now.
-        // I will update the interface right above this function first.
-
-        onRecordingComplete("", audioBlob);
-        setIsRecording(false);
-        setIsProcessing(false);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Error accessing microphone:", err);
-      alert("Không thể truy cập microphone.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      setIsProcessing(true); // temporary state before "stop" event fires
-      mediaRecorderRef.current.stop();
-    }
-  };
+  const isProcessing = isParentProcessing;
 
   return (
     <div className={`relative flex items-center justify-center ${className}`}>

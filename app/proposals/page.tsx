@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Lightbulb, Check, X, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  Lightbulb,
+  Check,
+  X,
+  Pencil,
+  Mic,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockProposals } from "@/lib/mock-data";
@@ -48,6 +57,26 @@ export default function ProposalsPage() {
   const [filter, setFilter] = useState<"all" | keyof typeof statusConfig>(
     "all",
   );
+  const [recordingProposalId, setRecordingProposalId] = useState<string | null>(
+    null,
+  );
+
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceRecorder({
+      onTranscriptionComplete: (text) => {
+        if (recordingProposalId) {
+          setEditContent((prev) =>
+            editingId === recordingProposalId ? prev + " " + text : text,
+          );
+          setEditingId(recordingProposalId);
+          setRecordingProposalId(null);
+        }
+      },
+      onError: (err) => {
+        console.error("Recording error:", err);
+        setRecordingProposalId(null);
+      },
+    });
 
   const filteredProposals =
     filter === "all" ? proposals : proposals.filter((p) => p.status === filter);
@@ -267,33 +296,94 @@ export default function ProposalsPage() {
 
                   {/* Approval Actions */}
                   {proposal.status === "submitted" && (
-                    <div className="flex gap-2 pt-4 border-t mt-4">
+                    <div className="flex items-center gap-2 pt-4 border-t mt-4 overflow-hidden">
+                      <div
+                        className={cn(
+                          "flex gap-2 transition-all duration-500 ease-in-out origin-left",
+                          (isRecording &&
+                            recordingProposalId === proposal.id) ||
+                            (isTranscribing &&
+                              recordingProposalId === proposal.id)
+                            ? "w-0 opacity-0 translate-x-[-10px] pointer-events-none"
+                            : "w-auto opacity-100 translate-x-0",
+                        )}
+                      >
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApprove(proposal.id)}
+                          className="gap-1.5 text-green-600 hover:bg-green-50 shrink-0"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReject(proposal.id)}
+                          className="gap-1.5 text-red-600 hover:bg-red-50 shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Từ chối
+                        </Button>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleApprove(proposal.id)}
-                        className="gap-1.5 text-green-600 hover:bg-green-50"
+                        onClick={() => {
+                          if (
+                            isRecording &&
+                            recordingProposalId === proposal.id
+                          ) {
+                            stopRecording();
+                          } else {
+                            setRecordingProposalId(proposal.id);
+                            startRecording();
+                          }
+                        }}
+                        disabled={
+                          (isRecording &&
+                            recordingProposalId !== proposal.id) ||
+                          (isTranscribing &&
+                            recordingProposalId !== proposal.id)
+                        }
+                        className={cn(
+                          "gap-1.5 transition-all duration-500 ease-in-out",
+                          (isRecording &&
+                            recordingProposalId === proposal.id) ||
+                            (isTranscribing &&
+                              recordingProposalId === proposal.id)
+                            ? "flex-1"
+                            : "flex-none",
+                          isRecording && recordingProposalId === proposal.id
+                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
+                            : isTranscribing &&
+                                recordingProposalId === proposal.id
+                              ? "bg-blue-50 text-blue-600 border-blue-200"
+                              : "text-purple-600 hover:bg-purple-50",
+                        )}
                       >
-                        <Check className="h-3.5 w-3.5" />
-                        Duyệt
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReject(proposal.id)}
-                        className="gap-1.5 text-red-600 hover:bg-red-50"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Từ chối
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEditing(proposal)}
-                        className="gap-1.5 text-purple-600 hover:bg-purple-50"
-                      >
-                        <Lightbulb className="h-3.5 w-3.5" />
-                        Chỉ đạo
+                        {isRecording && recordingProposalId === proposal.id ? (
+                          <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                            <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                            <span className="whitespace-nowrap">
+                              Đang nghe...
+                            </span>
+                          </div>
+                        ) : isTranscribing &&
+                          recordingProposalId === proposal.id ? (
+                          <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span className="whitespace-nowrap">
+                              Đang xử lý...
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                            <Mic className="h-3.5 w-3.5" />
+                            <span className="whitespace-nowrap">Chỉ đạo</span>
+                          </div>
+                        )}
                       </Button>
                     </div>
                   )}

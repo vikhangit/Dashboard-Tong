@@ -12,6 +12,8 @@ import {
   X,
   Calendar,
   User,
+  Mic,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +34,7 @@ import {
   formatDate,
   formatFullDateTime,
 } from "@/lib/utils";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 
 const statusConfig = {
   pending: {
@@ -86,9 +89,19 @@ export default function DirectivesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDirective, setNewDirective] = useState({
     content: "",
-    assignedTo: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceRecorder({
+      onTranscriptionComplete: (text) => {
+        setNewDirective((prev) => ({
+          ...prev,
+          content: prev.content ? `${prev.content} ${text}` : text,
+        }));
+        setIsDialogOpen(true);
+      },
+      onError: (err) => console.error("Recording error:", err),
+    });
 
   useEffect(() => {
     fetchDirectives();
@@ -121,14 +134,13 @@ export default function DirectivesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newDirective.content,
-          assignedTo: newDirective.assignedTo || undefined,
           status: "pending",
         }),
       });
 
       if (response.ok) {
         await fetchDirectives();
-        setNewDirective({ content: "", assignedTo: "" });
+        setNewDirective({ content: "" });
         setIsDialogOpen(false);
       }
     } catch (error) {
@@ -187,18 +199,39 @@ export default function DirectivesPage() {
             </div>
           </div>
 
-          {/* Button thêm mới */}
+          {/* Button thêm mới (Mic) */}
           <div className="flex items-center gap-4">
+            <Button
+              size="sm"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
+                isRecording
+                  ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
+                  : isTranscribing
+                    ? "bg-blue-500 cursor-wait"
+                    : "shadow-primary/20"
+              }`}
+            >
+              {isRecording ? (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
+                  Đang nghe...
+                </>
+              ) : isTranscribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  <span className="hidden sm:inline">Chỉ đạo</span>
+                </>
+              )}
+            </Button>
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  className="gap-2 rounded-full shadow-lg shadow-primary/20"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Thêm mới</span>
-                </Button>
-              </DialogTrigger>
+              {/* Removed DialogTrigger as we control open state via voice or manual click if needed */}
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
@@ -218,20 +251,6 @@ export default function DirectivesPage() {
                       }
                       rows={4}
                       className="resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assignedTo">Người thực hiện</Label>
-                    <Input
-                      id="assignedTo"
-                      placeholder="Tên người thực hiện"
-                      value={newDirective.assignedTo}
-                      onChange={(e) =>
-                        setNewDirective({
-                          ...newDirective,
-                          assignedTo: e.target.value,
-                        })
-                      }
                     />
                   </div>
                   <div className="flex gap-2 justify-end pt-2">
