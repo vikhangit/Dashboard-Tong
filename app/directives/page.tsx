@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import {
-  ArrowLeft,
   CheckCircle2,
   Clock,
   FileText,
@@ -12,6 +11,9 @@ import {
   X,
   Calendar,
   User,
+  Mic,
+  Loader2,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +34,7 @@ import {
   formatDate,
   formatFullDateTime,
 } from "@/lib/utils";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 
 const statusConfig = {
   pending: {
@@ -86,9 +89,19 @@ export default function DirectivesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDirective, setNewDirective] = useState({
     content: "",
-    assignedTo: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceRecorder({
+      onTranscriptionComplete: (text) => {
+        setNewDirective((prev) => ({
+          ...prev,
+          content: prev.content ? `${prev.content} ${text}` : text,
+        }));
+        setIsDialogOpen(true);
+      },
+      onError: (err) => console.error("Recording error:", err),
+    });
 
   useEffect(() => {
     fetchDirectives();
@@ -121,14 +134,13 @@ export default function DirectivesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newDirective.content,
-          assignedTo: newDirective.assignedTo || undefined,
           status: "pending",
         }),
       });
 
       if (response.ok) {
         await fetchDirectives();
-        setNewDirective({ content: "", assignedTo: "" });
+        setNewDirective({ content: "" });
         setIsDialogOpen(false);
       }
     } catch (error) {
@@ -168,92 +180,79 @@ export default function DirectivesPage() {
   return (
     <div className="min-h-screen bg-background/50">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/80 border-b shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-muted/50 -ml-2"
-              >
-                <ArrowLeft className="size-8" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">
-                Chỉ đạo công việc
-              </h1>
-            </div>
-          </div>
+      <PageHeader
+        title="Chỉ đạo công việc"
+        icon={<ClipboardList className="size-6 text-purple-600" />}
+      >
+        <Button
+          size="sm"
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
+            isRecording
+              ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
+              : isTranscribing
+                ? "bg-blue-500 cursor-wait"
+                : "shadow-primary/20"
+          }`}
+        >
+          {isRecording ? (
+            <>
+              <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
+              Đang nghe...
+            </>
+          ) : isTranscribing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Đang xử lý...
+            </>
+          ) : (
+            <>
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Chỉ đạo</span>
+            </>
+          )}
+        </Button>
 
-          {/* Button thêm mới */}
-          <div className="flex items-center gap-4">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="content">Nội dung chỉ đạo</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Nhập nội dung chỉ đạo..."
+                  value={newDirective.content}
+                  onChange={(e) =>
+                    setNewDirective({
+                      ...newDirective,
+                      content: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
                 <Button
-                  size="sm"
-                  className="gap-2 rounded-full shadow-lg shadow-primary/20"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Thêm mới</span>
+                  Hủy
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Nội dung chỉ đạo</Label>
-                    <Textarea
-                      id="content"
-                      placeholder="Nhập nội dung chỉ đạo..."
-                      value={newDirective.content}
-                      onChange={(e) =>
-                        setNewDirective({
-                          ...newDirective,
-                          content: e.target.value,
-                        })
-                      }
-                      rows={4}
-                      className="resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assignedTo">Người thực hiện</Label>
-                    <Input
-                      id="assignedTo"
-                      placeholder="Tên người thực hiện"
-                      value={newDirective.assignedTo}
-                      onChange={(e) =>
-                        setNewDirective({
-                          ...newDirective,
-                          assignedTo: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end pt-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Hủy
-                    </Button>
-                    <Button
-                      onClick={handleAddDirective}
-                      disabled={submitting || !newDirective.content.trim()}
-                    >
-                      {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </header>
+                <Button
+                  onClick={handleAddDirective}
+                  disabled={submitting || !newDirective.content.trim()}
+                >
+                  {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">

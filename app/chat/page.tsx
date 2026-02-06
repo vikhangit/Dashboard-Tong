@@ -1,17 +1,23 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, Sparkles, ChevronLeft } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Sparkles,
+  ChevronLeft,
+  Mic,
+  Square,
+  Loader2,
+} from "lucide-react";
+import axios from "axios";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
+import { Message } from "@/lib/types";
+import { getChatContext } from "@/lib/chat-utils";
 
 interface QuickAction {
   icon: string;
@@ -45,6 +51,24 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceRecorder({
+      onTranscriptionComplete: (text) => {
+        setInput((prev) => (prev ? `${prev} ${text}` : text));
+      },
+      onError: (err) => {
+        console.error("Voice recording error:", err);
+      },
+    });
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -55,22 +79,45 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    // Get context (last 10 messages)
+    const context = getChatContext(updatedMessages);
+
+    try {
+      const response = await axios.post("/api/chat", {
+        message: input,
+        history: context,
+      });
+
+      const aiContent =
+        typeof response.data === "string"
+          ? response.data
+          : JSON.stringify(response.data);
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          "Tôi đã nhận được yêu cầu của bạn và đang xử lý. Vui lòng đợi trong giây lát!",
+        content: aiContent,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content:
+          "Xin lỗi, đã có lỗi xảy ra khi kết nối với AI. Vui lòng thử lại sau.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleQuickAction = (action: string) => {
@@ -133,7 +180,7 @@ export default function ChatPage() {
                         : "text-muted-foreground"
                     }`}
                   >
-                    {message.timestamp.toLocaleTimeString("vi-VN", {
+                    {new Date(message.timestamp).toLocaleTimeString("vi-VN", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -187,6 +234,38 @@ export default function ChatPage() {
           {/* Input Area */}
           <div className="border-t p-4">
             <div className="flex items-center gap-2">
+              <Button
+                onClick={handleMicClick}
+                disabled={isTranscribing}
+                className={`transition-all duration-300 rounded-full h-10 w-10 p-0 flex items-center justify-center shrink-0 ${
+                  isRecording
+                    ? "bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-lg scale-110 border-none"
+                    : isTranscribing
+                      ? "bg-gradient-to-br from-blue-400 to-cyan-500 text-white shadow-md animate-pulse border-none"
+                      : "bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-md border-none"
+                }`}
+              >
+                {isRecording ? (
+                  <div className="flex items-end gap-1 h-4 select-none pointer-events-none">
+                    <div
+                      className="w-1 bg-white rounded-full animate-sound-wave"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="w-1 bg-white rounded-full animate-sound-wave"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="w-1 bg-white rounded-full animate-sound-wave"
+                      style={{ animationDelay: "75ms" }}
+                    />
+                  </div>
+                ) : isTranscribing ? (
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
+              </Button>
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -196,7 +275,13 @@ export default function ChatPage() {
                     handleSend();
                   }
                 }}
-                placeholder="Nhập tin nhắn..."
+                placeholder={
+                  isRecording
+                    ? "Đang lắng nghe..."
+                    : isTranscribing
+                      ? "Đang xử lý..."
+                      : "Nhập tin nhắn..."
+                }
                 className="flex-1 min-h-[40px] max-h-[200px] glass-card border-purple-200 focus-visible:ring-purple-500 resize-none py-3 text-lg"
               />
               <Button
