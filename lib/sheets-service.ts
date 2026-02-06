@@ -171,6 +171,21 @@ class SheetsService {
     }
   }
 
+  // --- Timezone Helpers ---
+  // The app runs in UTC environment (Vercel), but the User is in Vietnam (UTC+7).
+  private toSheetDate(date: Date | string | undefined): Date | string {
+    if (!date) return "";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "";
+    return new Date(d.getTime() + 7);
+  }
+
+  private fromSheetDate(dateStr: string): Date {
+    if (!dateStr) return new Date();
+    const logicalDate = this.parseDate(dateStr);
+    return new Date(logicalDate.getTime() - 7);
+  }
+
   // --- Helper methods for specific entities ---
   private parseDate(dateStr: string): Date {
     if (!dateStr) return new Date();
@@ -209,11 +224,11 @@ class SheetsService {
     return rows.map((row, index) => ({
       id: `row-${index + 2}`, // Generate a temporary ID based on row index (offset for header)
       status: this.mapStatusToEn(row[0] as string),
-      createdAt: this.parseDate(row[1] as string),
+      createdAt: this.fromSheetDate(row[1] as string),
       category: row[2],
       content: row[3],
       assignedTo: row[4],
-      deadline: row[5] ? this.parseDate(row[5] as string) : undefined,
+      deadline: row[5] ? this.fromSheetDate(row[5] as string) : undefined,
       actionContent: row[6] || "",
     }));
   }
@@ -222,53 +237,82 @@ class SheetsService {
     const range = this.config.ranges.directives || "'Chỉ đạo'!A2:G";
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
-    const values = directives.map((d) => [
-      d.status === "completed"
-        ? "Đã hoàn thành"
-        : d.status === "in_progress"
-          ? "Đã tiếp nhận"
-          : "Đã chỉ đạo",
-      d.createdAt instanceof Date
-        ? format(d.createdAt, "dd/MM/yyyy HH:mm:ss")
-        : d.createdAt,
-      d.category || "Chung",
-      d.content,
-      d.assignedTo || "",
-      d.deadline instanceof Date
-        ? format(d.deadline, "dd/MM/yyyy HH:mm:ss")
-        : d.deadline || "",
-      d.actionContent || "",
-    ]);
+    const values = directives.map((d) => {
+      const createdAt = this.toSheetDate(d.createdAt);
+      const deadline = d.deadline ? this.toSheetDate(d.deadline) : undefined;
+
+      return [
+        d.status === "completed"
+          ? "Đã hoàn thành"
+          : d.status === "in_progress"
+            ? "Đã tiếp nhận"
+            : "Đã chỉ đạo",
+        createdAt instanceof Date
+          ? format(createdAt, "dd/MM/yyyy HH:mm:ss")
+          : createdAt,
+        d.category || "Chung",
+        d.content,
+        d.assignedTo || "",
+        deadline instanceof Date
+          ? format(deadline, "dd/MM/yyyy HH:mm:ss")
+          : deadline || "",
+        d.actionContent || "",
+      ];
+    });
 
     await this.appendToSheet(range, values);
   }
 
   async syncTasksToSheet(tasks: any[]): Promise<void> {
     const range = this.config.ranges.tasks || "Tasks!A2:G";
-    const values = tasks.map((t) => [
-      t.id,
-      t.title,
-      t.description,
-      t.status,
-      t.priority,
-      t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
-      t.dueDate instanceof Date ? t.dueDate.toISOString() : t.dueDate || "",
-    ]);
+    const values = tasks.map((t) => {
+      let createdAt = t.createdAt;
+      if (createdAt instanceof Date) {
+        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+      }
+      let dueDate = t.dueDate;
+      if (dueDate instanceof Date) {
+        dueDate = new Date(dueDate.getTime() + 7 * 60 * 60 * 1000);
+      }
+      return [
+        t.id,
+        t.title,
+        t.description,
+        t.status,
+        t.priority,
+        createdAt instanceof Date ? createdAt.toISOString() : createdAt,
+        dueDate instanceof Date ? dueDate.toISOString() : dueDate || "",
+      ];
+    });
     await this.appendToSheet(range, values);
   }
 
   async syncProjectsToSheet(projects: any[]): Promise<void> {
     const range = this.config.ranges.projects || "Projects!A2:H";
-    const values = projects.map((p) => [
-      p.id,
-      p.name,
-      p.description,
-      p.status,
-      p.progress,
-      p.startDate instanceof Date ? p.startDate.toISOString() : p.startDate,
-      p.endDate instanceof Date ? p.endDate.toISOString() : p.endDate || "",
-      p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
-    ]);
+    const values = projects.map((p) => {
+      let createdAt = p.createdAt;
+      if (createdAt instanceof Date) {
+        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+      }
+      let startDate = p.startDate;
+      if (startDate instanceof Date) {
+        startDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+      }
+      let endDate = p.endDate;
+      if (endDate instanceof Date) {
+        endDate = new Date(endDate.getTime() + 7 * 60 * 60 * 1000);
+      }
+      return [
+        p.id,
+        p.name,
+        p.description,
+        p.status,
+        p.progress,
+        startDate instanceof Date ? startDate.toISOString() : startDate,
+        endDate instanceof Date ? endDate.toISOString() : endDate || "",
+        createdAt instanceof Date ? createdAt.toISOString() : createdAt,
+      ];
+    });
     await this.appendToSheet(range, values);
   }
 
@@ -347,14 +391,23 @@ class SheetsService {
       else if (p.status === "rejected") statusLabel = "Từ chối";
       else if (p.status === "directed") statusLabel = "Chỉ đạo";
 
+      let createdAt = p.createdAt;
+      if (createdAt instanceof Date) {
+        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+      }
+      let updatedAt = p.updatedAt;
+      if (updatedAt instanceof Date) {
+        updatedAt = new Date(updatedAt.getTime() + 7 * 60 * 60 * 1000);
+      }
+
       return [
         statusLabel,
-        p.createdAt instanceof Date && !isNaN(p.createdAt.getTime())
-          ? format(p.createdAt, "dd/MM/yyyy")
-          : p.createdAt || "",
-        p.updatedAt instanceof Date && !isNaN(p.updatedAt.getTime())
-          ? format(p.updatedAt, "dd/MM/yyyy HH:mm:ss")
-          : p.updatedAt || "",
+        createdAt instanceof Date && !isNaN(createdAt.getTime())
+          ? format(createdAt, "dd/MM/yyyy")
+          : createdAt || "",
+        updatedAt instanceof Date && !isNaN(updatedAt.getTime())
+          ? format(updatedAt, "dd/MM/yyyy HH:mm:ss")
+          : updatedAt || "",
         p.title,
         p.description,
         p.directionContent || "",
@@ -383,14 +436,17 @@ class SheetsService {
     else if (proposal.status === "rejected") statusLabel = "Từ chối";
     else if (proposal.status === "directed") statusLabel = "Chỉ đạo";
 
+    const createdAt = this.toSheetDate(proposal.createdAt);
+    // UpdatedAt is NOW, so we need to shift it too
+    const updatedAt = this.toSheetDate(new Date());
+
     const values = [
       [
         statusLabel,
-        proposal.createdAt instanceof Date &&
-        !isNaN(proposal.createdAt.getTime())
-          ? format(proposal.createdAt, "dd/MM/yyyy")
-          : proposal.createdAt || "",
-        format(new Date(), "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
+        createdAt instanceof Date && !isNaN(createdAt.getTime())
+          ? format(createdAt, "dd/MM/yyyy")
+          : createdAt || "",
+        format(updatedAt as Date, "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
         proposal.title,
         proposal.description,
         proposal.directionContent || "",
@@ -419,14 +475,16 @@ class SheetsService {
     else if (incident.severity === "high") severityLabel = "Cao";
     else if (incident.severity === "medium") severityLabel = "Trung bình";
 
+    const createdAt = this.toSheetDate(incident.createdAt);
+    const updatedAt = this.toSheetDate(new Date());
+
     const values = [
       [
         statusLabel,
-        incident.createdAt instanceof Date &&
-        !isNaN(incident.createdAt.getTime())
-          ? format(incident.createdAt, "dd/MM/yyyy HH:mm:ss")
+        createdAt instanceof Date && !isNaN(createdAt.getTime())
+          ? format(createdAt, "dd/MM/yyyy HH:mm:ss")
           : incident.createdAt || "",
-        format(new Date(), "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
+        format(updatedAt as Date, "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
         incident.title,
         severityLabel,
         incident.description,

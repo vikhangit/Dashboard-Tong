@@ -125,7 +125,6 @@ export default function TasksPage() {
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Thêm công việc
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
@@ -201,7 +200,7 @@ export default function TasksPage() {
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             onClick={() => setFilter('all')}
-            className="whitespace-nowrap glass-card"
+            className="whitespace-nowrap"
           >
             Tất cả ({tasks.length})
           </Button>
@@ -212,7 +211,7 @@ export default function TasksPage() {
                 key={key}
                 variant={filter === key ? 'default' : 'outline'}
                 onClick={() => setFilter(key as Task['status'])}
-                className="whitespace-nowrap glass-card"
+                className="whitespace-nowrap"
               >
                 {config.label} ({count})
               </Button>

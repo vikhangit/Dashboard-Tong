@@ -287,23 +287,13 @@ export default function ProposalsPage() {
 
                   {/* Approval Actions */}
                   {proposal.status === "submitted" && (
-                    <div className="flex items-center gap-2 pt-4 border-t mt-4 overflow-hidden">
-                      <div
-                        className={cn(
-                          "flex gap-2 transition-all duration-500 ease-in-out origin-left",
-                          (isRecording &&
-                            recordingProposalId === proposal.id) ||
-                            (isTranscribing &&
-                              recordingProposalId === proposal.id)
-                            ? "w-0 opacity-0 translate-x-[-10px] pointer-events-none"
-                            : "w-auto opacity-100 translate-x-0",
-                        )}
-                      >
+                    <div className="flex flex-col gap-3 pt-4 border-t mt-4">
+                      <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleApprove(proposal.id)}
-                          className="gap-1.5 text-green-600 hover:bg-green-50 shrink-0"
+                          className="flex-1 gap-1.5 text-green-600 hover:bg-green-50"
                         >
                           <Check className="h-3.5 w-3.5" />
                           Duyệt
@@ -312,7 +302,7 @@ export default function ProposalsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleReject(proposal.id)}
-                          className="gap-1.5 text-red-600 hover:bg-red-50 shrink-0"
+                          className="flex-1 gap-1.5 text-red-600 hover:bg-red-50"
                         >
                           <X className="h-3.5 w-3.5" />
                           Từ chối
@@ -339,13 +329,7 @@ export default function ProposalsPage() {
                             recordingProposalId !== proposal.id)
                         }
                         className={cn(
-                          "gap-1.5 transition-all duration-500 ease-in-out",
-                          (isRecording &&
-                            recordingProposalId === proposal.id) ||
-                            (isTranscribing &&
-                              recordingProposalId === proposal.id)
-                            ? "flex-1"
-                            : "flex-none",
+                          "w-full gap-1.5 transition-all duration-500 ease-in-out",
                           isRecording && recordingProposalId === proposal.id
                             ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
                             : isTranscribing &&
@@ -355,7 +339,7 @@ export default function ProposalsPage() {
                         )}
                       >
                         {isRecording && recordingProposalId === proposal.id ? (
-                          <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                          <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
                             <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
                             <span className="whitespace-nowrap">
                               Đang nghe...
@@ -363,14 +347,14 @@ export default function ProposalsPage() {
                           </div>
                         ) : isTranscribing &&
                           recordingProposalId === proposal.id ? (
-                          <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                          <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             <span className="whitespace-nowrap">
                               Đang xử lý...
                             </span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                          <div className="flex items-center justify-center gap-1.5 animate-in fade-in zoom-in duration-300">
                             <Mic className="h-3.5 w-3.5" />
                             <span className="whitespace-nowrap">Chỉ đạo</span>
                           </div>

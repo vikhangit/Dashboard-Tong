@@ -172,12 +172,12 @@ export default function HomePage() {
   // Mobile Minimalist View
   if (isMobile && !showDashboard) {
     return (
-      <div className="min-h-screen gradient-holographic flex flex-col relative">
+      <div className="min-h-screen gradient-holographic flex flex-col relative pb-[90px]">
         {/* Minimal Header */}
         <AppHeader />
 
         {/* Dashboard Category Tiles - 2 rows x 4 columns */}
-        <div className="px-4 pt-3 pb-2 z-0">
+        <div className="px-4 pt-4 shrink-0">
           <div className="grid grid-cols-3 gap-2">
             {/* Row 1 */}
 
@@ -239,11 +239,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Main Content - Voice Only - Fixed Layout Overlay */}
-        {/* We use a fixed container overlaying the content, positioned above the bottom nav */}
-        {/* Assuming BottomNav is roughly 60-80px. using bottom-20 (5rem/80px) to be safe or checking BottomNav */}
-        <div className="fixed inset-x-0 bottom-[80px] top-[280px] flex flex-col justify-end items-center pointer-events-none z-10 px-4 pb-4">
-          <div className="w-full max-w-sm flex flex-col items-center gap-4 pointer-events-auto">
+        {/* Main Content - Voice Only - Flex Grow to bottom */}
+        <div className="flex-1 flex flex-col justify-end items-center px-4 pb-4">
+          <div className="w-full max-w-sm flex flex-col items-center gap-4">
             {/* Label */}
             {!lastTranscript && !showSuccess && (
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
@@ -305,7 +303,7 @@ export default function HomePage() {
             )}
 
             {/* Voice Recorder - Always at the bottom of the stack */}
-            <div className="mt-2">
+            <div className="mt-2 text-center w-full flex justify-center">
               <VoiceRecorder
                 onRecordingComplete={handleRecordingComplete}
                 isParentProcessing={isTranscribing}
