@@ -11,6 +11,7 @@ import {
   Check,
   X,
   Calendar,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -176,7 +177,7 @@ export default function DirectivesPage() {
                 size="icon"
                 className="rounded-full hover:bg-muted/50 -ml-2"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="size-8" />
               </Button>
             </Link>
             <div>
@@ -186,6 +187,7 @@ export default function DirectivesPage() {
             </div>
           </div>
 
+          {/* Button thêm mới */}
           <div className="flex items-center gap-4">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -320,14 +322,13 @@ export default function DirectivesPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
-                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-6`}
+                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
                         >
                           <StatusIcon className="w-3 h-3 mr-1" />
                           {config.label}
                         </Badge>
                       </div>
                       <span className="text-base text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
                         {formatShortDateTime(directive.createdAt)}
                       </span>
                     </div>
@@ -340,10 +341,10 @@ export default function DirectivesPage() {
                       <ActionContent content={directive.actionContent} />
                     )}
 
-                    <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-400">
                       {directive.assignedTo && (
                         <span className="flex items-center gap-1 font-medium text-foreground/80 text-base">
-                          <span className="w-1 h-1 rounded-full bg-border" />
+                          <User className="w-3.5 h-3.5" />
                           {directive.assignedTo}
                         </span>
                       )}

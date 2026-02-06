@@ -46,12 +46,13 @@ export interface Proposal {
 
 export interface Incident {
   id: string;
-  title: string;
-  description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  createdAt: Date;
-  resolvedAt?: Date;
+  title: string;       // Sự cố
+  description: string; // Chi tiết
+  severity: 'low' | 'medium' | 'high' | 'critical'; // Mức độ
+  status: 'open' | 'directed' | 'in_progress' | 'resolved'; // Trạng thái
+  createdAt: Date;     // Thời gian tạo
+  updatedAt: Date;     // Thời gian cập nhật
+  directionContent?: string; // Chỉ đạo
 }
 
 export interface Plan {
