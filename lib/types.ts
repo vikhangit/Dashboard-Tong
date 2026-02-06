@@ -131,3 +131,10 @@ export interface DashboardCard {
   enabled: boolean;
   order: number;
 }
+
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date | string; // Allow string for serialization
+}

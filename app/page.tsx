@@ -500,7 +500,7 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-red-500 to-pink-600"
             href="/incidents"
             stats={[
-              { label: "Mở", value: statistics.incidents.open },
+              { label: "Mới", value: statistics.incidents.open },
               { label: "Đang xử lý", value: statistics.incidents.in_progress },
               { label: "Đã giải quyết", value: statistics.incidents.resolved },
             ]}

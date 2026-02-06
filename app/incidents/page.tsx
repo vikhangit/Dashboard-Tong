@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+
 import {
-  ArrowLeft,
   AlertTriangle,
   Lightbulb,
   Pencil,
@@ -11,6 +10,7 @@ import {
   Mic,
   Loader2,
 } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Card } from "@/components/ui/card";
@@ -169,20 +169,7 @@ export default function IncidentsPage() {
 
   return (
     <div className="min-h-screen gradient-holographic">
-      <header className="glass-card border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-2">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Sự cố</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Sự cố" icon={<AlertTriangle className="size-6 text-red-600" />} />
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}

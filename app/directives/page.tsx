@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import {
-  ArrowLeft,
   CheckCircle2,
   Clock,
   FileText,
@@ -14,6 +13,7 @@ import {
   User,
   Mic,
   Loader2,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -180,99 +180,79 @@ export default function DirectivesPage() {
   return (
     <div className="min-h-screen bg-background/50">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/80 border-b shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-muted/50 -ml-2"
-              >
-                <ArrowLeft className="size-8" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">
-                Chỉ đạo công việc
-              </h1>
+      <PageHeader
+        title="Chỉ đạo công việc"
+        icon={<ClipboardList className="size-6 text-purple-600" />}
+      >
+        <Button
+          size="sm"
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
+            isRecording
+              ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
+              : isTranscribing
+                ? "bg-blue-500 cursor-wait"
+                : "shadow-primary/20"
+          }`}
+        >
+          {isRecording ? (
+            <>
+              <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
+              Đang nghe...
+            </>
+          ) : isTranscribing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Đang xử lý...
+            </>
+          ) : (
+            <>
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Chỉ đạo</span>
+            </>
+          )}
+        </Button>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="content">Nội dung chỉ đạo</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Nhập nội dung chỉ đạo..."
+                  value={newDirective.content}
+                  onChange={(e) =>
+                    setNewDirective({
+                      ...newDirective,
+                      content: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleAddDirective}
+                  disabled={submitting || !newDirective.content.trim()}
+                >
+                  {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
+                </Button>
+              </div>
             </div>
-          </div>
-
-          {/* Button thêm mới (Mic) */}
-          <div className="flex items-center gap-4">
-            <Button
-              size="sm"
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
-                isRecording
-                  ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
-                  : isTranscribing
-                    ? "bg-blue-500 cursor-wait"
-                    : "shadow-primary/20"
-              }`}
-            >
-              {isRecording ? (
-                <>
-                  <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
-                  Đang nghe...
-                </>
-              ) : isTranscribing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang xử lý...
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4" />
-                  <span className="hidden sm:inline">Chỉ đạo</span>
-                </>
-              )}
-            </Button>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              {/* Removed DialogTrigger as we control open state via voice or manual click if needed */}
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Nội dung chỉ đạo</Label>
-                    <Textarea
-                      id="content"
-                      placeholder="Nhập nội dung chỉ đạo..."
-                      value={newDirective.content}
-                      onChange={(e) =>
-                        setNewDirective({
-                          ...newDirective,
-                          content: e.target.value,
-                        })
-                      }
-                      rows={4}
-                      className="resize-none"
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end pt-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Hủy
-                    </Button>
-                    <Button
-                      onClick={handleAddDirective}
-                      disabled={submitting || !newDirective.content.trim()}
-                    >
-                      {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </header>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">
