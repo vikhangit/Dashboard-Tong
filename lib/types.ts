@@ -12,26 +12,94 @@ export interface Directive {
 
 export interface Task {
   id: string;
-  title: string;
-  description: string;
-  status: "pending" | "in_progress" | "completed";
-  priority: "low" | "medium" | "high";
-  dueDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  projectId?: string;
+  name: string;
+  process: string;
+  date_start: string;
+  date_end: string;
+  created_at: string;
+  status: {
+    id: number;
+    name: string;
+  };
+  project: {
+    id: number;
+    name: string;
+  };
+  assignee: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  };
+}
+
+export interface ProjectMember {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
 }
 
 export interface Project {
-  id: string;
+  id: number;
   name: string;
   description: string;
-  status: "planning" | "active" | "completed" | "on_hold";
+  status: string;
+  project_status?: {
+    id: number;
+    name: string;
+  };
+  priority: string;
   progress: number;
-  startDate: Date;
-  endDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+  updated_at: string;
+  latest_updated?: string;
+  manager_id: number;
+  members: ProjectMember[];
+  budget: string;
+  spent: string;
+  company_id?: number;
+
+  // New fields from API response
+  client_name?: string | null;
+  client_contact?: string | null;
+  technologies?: string | null;
+  team_size?: number;
+  key_project?: boolean;
+  active?: boolean;
+  is_featured?: boolean;
+  image_url?: string | null;
+  slug?: string | null;
+
+  // JSON/Rich text fields (might be null or string)
+  gallery?: string | null;
+  features?: string | null;
+  challenges?: string | null;
+  solutions?: string | null;
+  results?: string | null;
+  testimonials?: string | null;
+
+  departments?: {
+    id: number;
+    name: string;
+  }[];
+
+  documents?: {
+    id: number;
+    name: string;
+    file_url: string;
+  }[];
+}
+
+export interface ProjectApiResponse {
+  data: Project[];
+  paginations: {
+    total: number;
+    limit: number;
+    page: number;
+    total_page: number;
+  };
 }
 
 export interface Proposal {
@@ -96,7 +164,6 @@ export interface Statistics {
     open: number;
     in_progress: number;
     resolved: number;
-    closed: number;
     total: number;
   };
   plans: {
@@ -137,4 +204,19 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date | string; // Allow string for serialization
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    rows: T[];
+    paginations: {
+      total: number;
+      limit: number;
+      page: number;
+      total_pages: number;
+    };
+  };
 }
