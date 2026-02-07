@@ -221,7 +221,7 @@ class SheetsService {
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
-    return rows.map((row, index) => ({
+    const directives = rows.map((row, index) => ({
       id: `row-${index + 2}`, // Generate a temporary ID based on row index (offset for header)
       status: this.mapStatusToEn(row[0] as string),
       createdAt: this.fromSheetDate(row[1] as string),
@@ -231,6 +231,11 @@ class SheetsService {
       deadline: row[5] ? this.fromSheetDate(row[5] as string) : undefined,
       actionContent: row[6] || "",
     }));
+
+    // Sort by createdAt desc
+    return directives.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   async syncDirectivesToSheet(directives: any[]): Promise<void> {
@@ -268,11 +273,11 @@ class SheetsService {
     const values = tasks.map((t) => {
       let createdAt = t.createdAt;
       if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+        createdAt = new Date(createdAt.getTime() + 7);
       }
       let dueDate = t.dueDate;
       if (dueDate instanceof Date) {
-        dueDate = new Date(dueDate.getTime() + 7 * 60 * 60 * 1000);
+        dueDate = new Date(dueDate.getTime() + 7);
       }
       return [
         t.id,
@@ -292,15 +297,15 @@ class SheetsService {
     const values = projects.map((p) => {
       let createdAt = p.createdAt;
       if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+        createdAt = new Date(createdAt.getTime() + 7);
       }
       let startDate = p.startDate;
       if (startDate instanceof Date) {
-        startDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+        startDate = new Date(startDate.getTime() + 7);
       }
       let endDate = p.endDate;
       if (endDate instanceof Date) {
-        endDate = new Date(endDate.getTime() + 7 * 60 * 60 * 1000);
+        endDate = new Date(endDate.getTime() + 7);
       }
       return [
         p.id,
@@ -342,7 +347,7 @@ class SheetsService {
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Sự cố | Mức độ | Chi tiết | Chỉ đạo
-    return rows.map((row, index) => ({
+    const incidents = rows.map((row, index) => ({
       id: `row-${index + 2}`,
       status: this.mapIncidentStatus(row[0] as string),
       createdAt: this.parseDate(row[1] as string),
@@ -352,6 +357,10 @@ class SheetsService {
       description: row[5],
       directionContent: row[6] || "",
     }));
+
+    return incidents.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   async getProposals(): Promise<any[]> {
@@ -359,7 +368,7 @@ class SheetsService {
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Đề xuất | Chi tiết | Nội dung chỉ đạo
-    return rows.map((row, index) => {
+    const proposals = rows.map((row, index) => {
       const statusRaw = (row[0] as string)?.trim();
       let status = "draft";
       if (statusRaw === "Đã duyệt") status = "approved";
@@ -378,6 +387,10 @@ class SheetsService {
         directionContent: row[5] || "",
       };
     });
+
+    return proposals.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   async syncProposalsToSheet(proposals: any[]): Promise<void> {
@@ -393,11 +406,11 @@ class SheetsService {
 
       let createdAt = p.createdAt;
       if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7 * 60 * 60 * 1000);
+        createdAt = new Date(createdAt.getTime() + 7);
       }
       let updatedAt = p.updatedAt;
       if (updatedAt instanceof Date) {
-        updatedAt = new Date(updatedAt.getTime() + 7 * 60 * 60 * 1000);
+        updatedAt = new Date(updatedAt.getTime() + 7);
       }
 
       return [
