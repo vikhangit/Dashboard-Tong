@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, BarChart3, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Statistics } from '@/lib/types';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Statistics } from "@/lib/types";
 
 export default function AnalysisPage() {
   const [statistics, setStatistics] = useState<Statistics | null>(null);
@@ -16,11 +22,19 @@ export default function AnalysisPage() {
 
   const fetchStatistics = async () => {
     try {
-      const response = await fetch('/api/statistics');
-      const data = await response.json();
-      setStatistics(data);
+      const response = await fetch("/api/statistics");
+      const result = await response.json();
+
+      if (result.data) {
+        setStatistics(result.data);
+      }
+
+      if (result.warnings && result.warnings.length > 0) {
+        console.warn("Some data sources failed:", result.warnings);
+        // Optional: Show toast or alert
+      }
     } catch (error) {
-      console.error('[v0] Error fetching statistics:', error);
+      console.error("[v0] Error fetching statistics:", error);
     }
   };
 
@@ -33,19 +47,32 @@ export default function AnalysisPage() {
   }
 
   const completionRate = {
-    directives: statistics.directives.total > 0 
-      ? Math.round((statistics.directives.da_hoan_thanh / statistics.directives.total) * 100) 
-      : 0,
-    tasks: statistics.tasks.total > 0 
-      ? Math.round((statistics.tasks.completed / statistics.tasks.total) * 100) 
-      : 0,
-    projects: statistics.projects.total > 0 
-      ? Math.round((statistics.projects.completed / statistics.projects.total) * 100) 
-      : 0
+    directives:
+      statistics.directives.total > 0
+        ? Math.round(
+            (statistics.directives.completed / statistics.directives.total) *
+              100,
+          )
+        : 0,
+    tasks:
+      statistics.tasks.total > 0
+        ? Math.round(
+            (statistics.tasks.completed / statistics.tasks.total) * 100,
+          )
+        : 0,
+    projects:
+      statistics.projects.total > 0
+        ? Math.round(
+            (statistics.projects.completed / statistics.projects.total) * 100,
+          )
+        : 0,
   };
 
   const overallCompletion = Math.round(
-    (completionRate.directives + completionRate.tasks + completionRate.projects) / 3
+    (completionRate.directives +
+      completionRate.tasks +
+      completionRate.projects) /
+      3,
   );
 
   return (
@@ -60,7 +87,9 @@ export default function AnalysisPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-foreground">Phân tích</h1>
-              <p className="text-sm text-muted-foreground">Thống kê và phân tích dữ liệu</p>
+              <p className="text-sm text-muted-foreground">
+                Thống kê và phân tích dữ liệu
+              </p>
             </div>
           </div>
         </div>
@@ -76,8 +105,12 @@ export default function AnalysisPage() {
                 <span className="text-3xl font-bold">{overallCompletion}%</span>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Tỷ lệ hoàn thành tổng thể</h2>
-            <p className="text-sm text-muted-foreground">Trung bình các công việc đã hoàn thành</p>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              Tỷ lệ hoàn thành tổng thể
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Trung bình các công việc đã hoàn thành
+            </p>
           </div>
         </Card>
 
@@ -90,9 +123,12 @@ export default function AnalysisPage() {
               </div>
               <h3 className="font-semibold">Chỉ đạo</h3>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">{completionRate.directives}%</div>
+            <div className="text-3xl font-bold text-foreground mb-1">
+              {completionRate.directives}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              {statistics.directives.da_hoan_thanh}/{statistics.directives.total} hoàn thành
+              {statistics.directives.completed}/{statistics.directives.total}{" "}
+              hoàn thành
             </p>
           </Card>
 
@@ -103,7 +139,9 @@ export default function AnalysisPage() {
               </div>
               <h3 className="font-semibold">Công việc</h3>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">{completionRate.tasks}%</div>
+            <div className="text-3xl font-bold text-foreground mb-1">
+              {completionRate.tasks}%
+            </div>
             <p className="text-xs text-muted-foreground">
               {statistics.tasks.completed}/{statistics.tasks.total} hoàn thành
             </p>
@@ -116,9 +154,12 @@ export default function AnalysisPage() {
               </div>
               <h3 className="font-semibold">Dự án</h3>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">{completionRate.projects}%</div>
+            <div className="text-3xl font-bold text-foreground mb-1">
+              {completionRate.projects}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              {statistics.projects.completed}/{statistics.projects.total} hoàn thành
+              {statistics.projects.completed}/{statistics.projects.total} hoàn
+              thành
             </p>
           </Card>
         </div>
@@ -130,7 +171,9 @@ export default function AnalysisPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tổng chỉ đạo</span>
-                <span className="font-semibold">{statistics.directives.total}</span>
+                <span className="font-semibold">
+                  {statistics.directives.total}
+                </span>
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tổng công việc</span>
@@ -138,15 +181,21 @@ export default function AnalysisPage() {
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tổng dự án</span>
-                <span className="font-semibold">{statistics.projects.total}</span>
+                <span className="font-semibold">
+                  {statistics.projects.total}
+                </span>
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tổng đề xuất</span>
-                <span className="font-semibold">{statistics.proposals.total}</span>
+                <span className="font-semibold">
+                  {statistics.proposals.total}
+                </span>
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Tổng sự cố</span>
-                <span className="font-semibold">{statistics.incidents.total}</span>
+                <span className="font-semibold">
+                  {statistics.incidents.total}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tổng kế hoạch</span>

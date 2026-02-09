@@ -6,7 +6,7 @@
  */
 
 import { google } from "googleapis";
-import { format, parse } from "date-fns";
+import { parse } from "date-fns";
 
 export interface SheetConfig {
   spreadsheetId: string;
@@ -43,6 +43,7 @@ class SheetsService {
         incidents: "'Sự cố'!A2:G",
         tasks: "Tasks!A2:E", // Default
         projects: "Projects!A2:E", // Default
+        plans: "'Kế hoạch'!A2:G",
       },
     };
   }
@@ -172,18 +173,78 @@ class SheetsService {
   }
 
   // --- Timezone Helpers ---
-  // The app runs in UTC environment (Vercel), but the User is in Vietnam (UTC+7).
-  private toSheetDate(date: Date | string | undefined): Date | string {
+  // Always use Vietnam timezone (Asia/Ho_Chi_Minh) regardless of where the code runs.
+  private static readonly VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh";
+
+  /**
+   * Get current date/time in Vietnam timezone
+   */
+  private getVietnamNow(): Date {
+    // Get the current time formatted in Vietnam timezone
+    const vnDateStr = new Date().toLocaleString("en-CA", {
+      timeZone: SheetsService.VIETNAM_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    // Parse back to Date (will be in local timezone but represents VN time)
+    return new Date(vnDateStr.replace(",", ""));
+  }
+
+  /**
+   * Format a Date to Vietnam timezone string for saving to Sheet
+   * Returns the date/time as it would appear on a clock in Vietnam
+   */
+  private toVietnamDateString(
+    date: Date | string | undefined,
+    includeTime = true,
+  ): string {
     if (!date) return "";
     const d = new Date(date);
     if (isNaN(d.getTime())) return "";
-    return new Date(d.getTime() + 7);
+
+    // Format in Vietnam timezone
+    const formatter = new Intl.DateTimeFormat("vi-VN", {
+      timeZone: SheetsService.VIETNAM_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      ...(includeTime && {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }),
+    });
+
+    const parts = formatter.formatToParts(d);
+    const getPart = (type: string) =>
+      parts.find((p) => p.type === type)?.value || "";
+
+    if (includeTime) {
+      return `${getPart("day")}/${getPart("month")}/${getPart("year")} ${getPart("hour")}:${getPart("minute")}:${getPart("second")}`;
+    }
+    return `${getPart("day")}/${getPart("month")}/${getPart("year")}`;
   }
 
+  /**
+   * @deprecated Use toVietnamDateString instead. Kept for backward compatibility.
+   */
+  private toSheetDate(date: Date | string | undefined): string {
+    return this.toVietnamDateString(date, true);
+  }
+
+  /**
+   * Parse a date string from Sheet (assumed to be in Vietnam timezone)
+   * and return a Date object in local timezone
+   */
   private fromSheetDate(dateStr: string): Date {
-    if (!dateStr) return new Date();
-    const logicalDate = this.parseDate(dateStr);
-    return new Date(logicalDate.getTime() - 7);
+    if (!dateStr) return this.getVietnamNow();
+    return this.parseDate(dateStr);
   }
 
   // --- Helper methods for specific entities ---
@@ -243,24 +304,17 @@ class SheetsService {
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
     const values = directives.map((d) => {
-      const createdAt = this.toSheetDate(d.createdAt);
-      const deadline = d.deadline ? this.toSheetDate(d.deadline) : undefined;
-
       return [
         d.status === "completed"
           ? "Đã hoàn thành"
           : d.status === "in_progress"
             ? "Đã tiếp nhận"
             : "Đã chỉ đạo",
-        createdAt instanceof Date
-          ? format(createdAt, "dd/MM/yyyy HH:mm:ss")
-          : createdAt,
+        this.toVietnamDateString(d.createdAt, true),
         d.category || "Chung",
         d.content,
         d.assignedTo || "",
-        deadline instanceof Date
-          ? format(deadline, "dd/MM/yyyy HH:mm:ss")
-          : deadline || "",
+        d.deadline ? this.toVietnamDateString(d.deadline, true) : "",
         d.actionContent || "",
       ];
     });
@@ -271,22 +325,14 @@ class SheetsService {
   async syncTasksToSheet(tasks: any[]): Promise<void> {
     const range = this.config.ranges.tasks || "Tasks!A2:G";
     const values = tasks.map((t) => {
-      let createdAt = t.createdAt;
-      if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7);
-      }
-      let dueDate = t.dueDate;
-      if (dueDate instanceof Date) {
-        dueDate = new Date(dueDate.getTime() + 7);
-      }
       return [
         t.id,
         t.title,
         t.description,
         t.status,
         t.priority,
-        createdAt instanceof Date ? createdAt.toISOString() : createdAt,
-        dueDate instanceof Date ? dueDate.toISOString() : dueDate || "",
+        this.toVietnamDateString(t.createdAt, true),
+        t.dueDate ? this.toVietnamDateString(t.dueDate, true) : "",
       ];
     });
     await this.appendToSheet(range, values);
@@ -295,27 +341,15 @@ class SheetsService {
   async syncProjectsToSheet(projects: any[]): Promise<void> {
     const range = this.config.ranges.projects || "Projects!A2:H";
     const values = projects.map((p) => {
-      let createdAt = p.createdAt;
-      if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7);
-      }
-      let startDate = p.startDate;
-      if (startDate instanceof Date) {
-        startDate = new Date(startDate.getTime() + 7);
-      }
-      let endDate = p.endDate;
-      if (endDate instanceof Date) {
-        endDate = new Date(endDate.getTime() + 7);
-      }
       return [
         p.id,
         p.name,
         p.description,
         p.status,
         p.progress,
-        startDate instanceof Date ? startDate.toISOString() : startDate,
-        endDate instanceof Date ? endDate.toISOString() : endDate || "",
-        createdAt instanceof Date ? createdAt.toISOString() : createdAt,
+        this.toVietnamDateString(p.startDate, false),
+        p.endDate ? this.toVietnamDateString(p.endDate, false) : "",
+        this.toVietnamDateString(p.createdAt, true),
       ];
     });
     await this.appendToSheet(range, values);
@@ -404,23 +438,10 @@ class SheetsService {
       else if (p.status === "rejected") statusLabel = "Từ chối";
       else if (p.status === "directed") statusLabel = "Chỉ đạo";
 
-      let createdAt = p.createdAt;
-      if (createdAt instanceof Date) {
-        createdAt = new Date(createdAt.getTime() + 7);
-      }
-      let updatedAt = p.updatedAt;
-      if (updatedAt instanceof Date) {
-        updatedAt = new Date(updatedAt.getTime() + 7);
-      }
-
       return [
         statusLabel,
-        createdAt instanceof Date && !isNaN(createdAt.getTime())
-          ? format(createdAt, "dd/MM/yyyy")
-          : createdAt || "",
-        updatedAt instanceof Date && !isNaN(updatedAt.getTime())
-          ? format(updatedAt, "dd/MM/yyyy HH:mm:ss")
-          : updatedAt || "",
+        this.toVietnamDateString(p.createdAt, false),
+        this.toVietnamDateString(p.updatedAt, true),
         p.title,
         p.description,
         p.directionContent || "",
@@ -449,17 +470,11 @@ class SheetsService {
     else if (proposal.status === "rejected") statusLabel = "Từ chối";
     else if (proposal.status === "directed") statusLabel = "Chỉ đạo";
 
-    const createdAt = this.toSheetDate(proposal.createdAt);
-    // UpdatedAt is NOW, so we need to shift it too
-    const updatedAt = this.toSheetDate(new Date());
-
     const values = [
       [
         statusLabel,
-        createdAt instanceof Date && !isNaN(createdAt.getTime())
-          ? format(createdAt, "dd/MM/yyyy")
-          : createdAt || "",
-        format(updatedAt as Date, "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
+        this.toVietnamDateString(proposal.createdAt, false),
+        this.toVietnamDateString(new Date(), true), // Always update updatedAt to now
         proposal.title,
         proposal.description,
         proposal.directionContent || "",
@@ -488,16 +503,11 @@ class SheetsService {
     else if (incident.severity === "high") severityLabel = "Cao";
     else if (incident.severity === "medium") severityLabel = "Trung bình";
 
-    const createdAt = this.toSheetDate(incident.createdAt);
-    const updatedAt = this.toSheetDate(new Date());
-
     const values = [
       [
         statusLabel,
-        createdAt instanceof Date && !isNaN(createdAt.getTime())
-          ? format(createdAt, "dd/MM/yyyy HH:mm:ss")
-          : incident.createdAt || "",
-        format(updatedAt as Date, "dd/MM/yyyy HH:mm:ss"), // Always update updatedAt
+        this.toVietnamDateString(incident.createdAt, true),
+        this.toVietnamDateString(new Date(), true), // Always update updatedAt to now
         incident.title,
         severityLabel,
         incident.description,
@@ -506,6 +516,39 @@ class SheetsService {
     ];
 
     await this.updateRow(range, values);
+  }
+
+  async getPlans(): Promise<any[]> {
+    const range = this.config.ranges.plans || "'Kế hoạch'!A2:G";
+    const rows = await this.readRange(range);
+
+    // Columns: Trạng thái | Thời gian tạo | Tiêu đề | Nội dung | Thời gian bắt đầu | Thời gian kết thúc | File đính kèm
+    const plans = rows.map((row, index) => {
+      const statusRaw = (row[0] as string)?.trim();
+      let status = "draft";
+      if (statusRaw === "Đang thực hiện") status = "active";
+      else if (statusRaw === "Hoàn thành") status = "completed";
+      else if (statusRaw === "Tạm dừng") status = "paused";
+      else if (statusRaw === "Hủy") status = "cancelled";
+
+      return {
+        id: `row-${index + 2}`,
+        status,
+        createdAt: this.parseDate(row[1] as string),
+        title: row[2],
+        description: row[3],
+        startDate: this.parseDate(row[4] as string),
+        endDate: row[5] ? this.parseDate(row[5] as string) : undefined,
+        attachments: row[6]
+          ? (row[6] as string)
+              .split(/[\n,;]+/) // Split by newline, comma, or semicolon
+              .map((link) => link.trim())
+              .filter((link) => link.length > 0)
+          : [],
+      };
+    });
+
+    return plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 

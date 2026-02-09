@@ -9,14 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { AppPagination } from "@/components/app-pagination";
 import {
   Select,
   SelectContent,
@@ -223,7 +216,7 @@ export default function ProjectsPage() {
       setLoading(true);
       // Fetch ALL projects at once
       const response = await axios.get<ProjectApiResponse>(
-        "https://apec-global-backend.vercel.app/api/v1/projects/outside",
+        "https://api.apecglobal.net/api/v1/projects/outside",
         {
           params: {
             limit: 1000, // Fetch big limit to get all
@@ -420,82 +413,16 @@ export default function ProjectsPage() {
         {/* Pagination */}
         {pagination.total > 0 && (
           <div className="mt-6">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    className={
-                      pagination.page <= 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                    onClick={() => {
-                      if (pagination.page > 1) {
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: prev.page - 1,
-                        }));
-                      }
-                    }}
-                  />
-                </PaginationItem>
-
-                {(() => {
-                  const total = pagination.total_pages;
-                  const current = pagination.page;
-                  const maxVisible = 5;
-
-                  let startPage = Math.max(1, current - 2);
-                  const endPage = Math.min(total, startPage + maxVisible - 1);
-
-                  if (endPage - startPage + 1 < maxVisible) {
-                    startPage = Math.max(1, endPage - maxVisible + 1);
-                  }
-
-                  const length = Math.min(maxVisible, endPage - startPage + 1);
-
-                  return Array.from({ length }, (_, i) => startPage + i).map(
-                    (pageNum) => (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          isActive={pagination.page === pageNum}
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: pageNum,
-                            }))
-                          }
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  );
-                })()}
-
-                <PaginationItem>
-                  <PaginationNext
-                    className={
-                      pagination.page >= pagination.total_pages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                    onClick={() => {
-                      if (pagination.page < pagination.total_pages) {
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: prev.page + 1,
-                        }));
-                      }
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            <div className="text-center text-xs text-muted-foreground mt-2">
-              Hiển thị {projects.length} / {pagination.total} dự án
-            </div>
+            <AppPagination
+              page={pagination.page}
+              total={pagination.total}
+              limit={pagination.limit}
+              onChange={(newPage) =>
+                setPagination((prev) => ({ ...prev, page: newPage }))
+              }
+              itemName="dự án"
+              currentCount={projects.length}
+            />
           </div>
         )}
       </div>

@@ -10,18 +10,10 @@ import {
   AlertTriangle,
   Calendar,
   BarChart3,
-  UserPlus,
-  Bell,
-  Menu,
-  Bot,
-  Users,
-  ChevronUp,
-  LayoutGrid,
-  MessageSquare,
   X,
   Send,
-  Trash2,
   Loader2,
+  Eraser,
 } from "lucide-react";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { StatsCard } from "@/components/stats-card";
@@ -30,7 +22,7 @@ import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea"; // Assuming Textarea exists, otherwise I'll use textarea tag
+import { Textarea } from "@/components/ui/textarea";
 import { Statistics } from "@/lib/types";
 
 export default function HomePage() {
@@ -41,6 +33,7 @@ export default function HomePage() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [lastTranscript, setLastTranscript] = useState<string>("");
+  const [showDirectiveInput, setShowDirectiveInput] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -63,12 +56,16 @@ export default function HomePage() {
   const fetchStatistics = async () => {
     try {
       const response = await fetch("/api/statistics");
-      const data = await response.json();
-      setStatistics(data);
+      const result = await response.json();
+      const stats = result.data as Statistics;
+      setStatistics(stats);
 
-      // Calculate notification count (pending tasks + new directives)
-      const pendingCount = data.tasks.pending + data.directives.pending;
-      setNotificationCount(pendingCount);
+      if (stats) {
+        // Calculate notification count (in_progress tasks + pending directives)
+        const activeCount =
+          (stats.tasks?.in_progress || 0) + (stats.directives?.pending || 0);
+        setNotificationCount(activeCount);
+      }
     } catch (error) {
       console.error("[v0] Error fetching statistics:", error);
     }
@@ -96,6 +93,7 @@ export default function HomePage() {
           setLastTranscript((prev) =>
             prev ? `${prev} ${data.text}` : data.text,
           );
+          setShowDirectiveInput(true);
         }
       } catch (err) {
         console.error("Transcription failed", err);
@@ -106,11 +104,19 @@ export default function HomePage() {
       setLastTranscript((prev) =>
         prev ? `${prev} ${transcript}` : transcript,
       );
+      setShowDirectiveInput(true);
     }
   };
 
   const handleCancelDirective = () => {
+    // This is the close button handler
     setLastTranscript("");
+    setShowDirectiveInput(false);
+  };
+
+  const handleClearContent = () => {
+    setLastTranscript("");
+    // Keep input open
   };
 
   const handleSendDirective = async () => {
@@ -140,6 +146,7 @@ export default function HomePage() {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
         setLastTranscript(""); // Clear after sending
+        setShowDirectiveInput(false);
         fetchStatistics();
       }
     } catch (error) {
@@ -186,7 +193,7 @@ export default function HomePage() {
               icon={ClipboardList}
               label="Chỉ đạo"
               iconColor="text-purple-600"
-              // count={statistics.directives.pending}
+              count={statistics.directives.pending}
             />
 
             <DashboardShortcut
@@ -194,7 +201,7 @@ export default function HomePage() {
               icon={Briefcase}
               label="Công việc"
               iconColor="text-blue-600"
-              /* count={statistics.tasks.pending} */
+              count={statistics.tasks.in_progress}
             />
 
             <DashboardShortcut
@@ -202,7 +209,7 @@ export default function HomePage() {
               icon={FolderKanban}
               label="Dự án"
               iconColor="text-green-600"
-              /* count={statistics.projects.planning} */
+              count={statistics.projects.active}
             />
 
             {/* Row 2 */}
@@ -211,7 +218,7 @@ export default function HomePage() {
               icon={Lightbulb}
               label="Đề xuất"
               iconColor="text-yellow-600"
-              // count={statistics.proposals.submitted}
+              count={statistics.proposals.submitted}
             />
 
             <DashboardShortcut
@@ -219,7 +226,7 @@ export default function HomePage() {
               icon={AlertTriangle}
               label="Sự cố"
               iconColor="text-red-600"
-              // count={statistics.incidents.open}
+              count={statistics.incidents.open}
             />
 
             <DashboardShortcut
@@ -227,7 +234,7 @@ export default function HomePage() {
               icon={Calendar}
               label="Kế hoạch"
               iconColor="text-teal-600"
-              /* count={statistics.plans.draft} */
+              count={statistics.plans.active}
             />
 
             <DashboardShortcut
@@ -243,7 +250,7 @@ export default function HomePage() {
         <div className="flex-1 flex flex-col justify-end items-center px-4 pb-4">
           <div className="w-full max-w-sm flex flex-col items-center gap-4">
             {/* Label */}
-            {!lastTranscript && !showSuccess && (
+            {!showDirectiveInput && !showSuccess && (
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
                 Chỉ đạo công việc
               </h2>
@@ -259,28 +266,37 @@ export default function HomePage() {
             )}
 
             {/* Transcript Editor */}
-            {lastTranscript && (
+            {showDirectiveInput && (
               <div className="w-full animate-in fade-in slide-in-from-bottom-2 relative group shadow-lg rounded-xl">
                 <Textarea
                   value={lastTranscript}
                   onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[100px] p-3 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                  className="min-h-[100px] p-3 pb-12 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
                   placeholder="Nội dung chỉ đạo..."
                 />
 
-                {/* Clear Button */}
+                {/* Close Button (Updated Title) */}
                 <Button
                   onClick={handleCancelDirective}
-                  variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full"
-                  title="Xóa nội dung"
+                  className="absolute top-2 right-2 h-8 w-8 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                  title="Đóng"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="size-5" />
                 </Button>
 
-                {/* Send Button */}
-                <div className="absolute bottom-2 right-2">
+                {/* Send Button & Clear Button */}
+                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                  <Button
+                    onClick={handleClearContent}
+                    size="sm"
+                    className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Xóa văn bản"
+                  >
+                    <Eraser className="h-4 w-4 mr-2" />
+                    Xóa
+                  </Button>
+
                   <Button
                     onClick={handleSendDirective}
                     disabled={isSending}
@@ -332,34 +348,43 @@ export default function HomePage() {
         {/* Voice Recording Section - Only on Desktop */}
         {!isMobile && (
           <div className="text-center mb-12">
-            {!lastTranscript && (
+            {!showDirectiveInput && (
               <h2 className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wide">
                 Chỉ đạo công việc
               </h2>
             )}
 
             {/* Transcript Editor - Compact & Above Recorder (Desktop) */}
-            {lastTranscript && !isTranscribing && (
+            {showDirectiveInput && !isTranscribing && (
               <div className="mb-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-2 relative">
                 <Textarea
                   value={lastTranscript}
                   onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[100px] p-4 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                  className="min-h-[150px] p-4 pb-14 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
                   placeholder="Nội dung chỉ đạo..."
                 />
 
-                {/* Clear Button */}
+                {/* Close Button (Updated Title) */}
                 <Button
                   onClick={handleCancelDirective}
-                  variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  className="absolute top-2 right-2 h-10 w-10 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                  title="Đóng - Hủy bỏ"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-6 w-6" />
                 </Button>
 
-                {/* Send Button */}
-                <div className="absolute bottom-3 right-3">
+                {/* Send Button & Clear Button */}
+                <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+                  <Button
+                    onClick={handleClearContent}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full px-4 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Xóa văn bản"
+                  >
+                    <Eraser className="h-5 w-5 mr-2" />
+                    Xóa văn bản
+                  </Button>
+
                   <Button
                     onClick={handleSendDirective}
                     disabled={isSending}
@@ -462,9 +487,10 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-blue-500 to-cyan-600"
             href="/tasks"
             stats={[
-              { label: "Chờ xử lý", value: statistics.tasks.pending },
               { label: "Đang thực hiện", value: statistics.tasks.in_progress },
               { label: "Hoàn thành", value: statistics.tasks.completed },
+              { label: "Tạm dừng", value: statistics.tasks.paused },
+              { label: "Hủy", value: statistics.tasks.cancelled },
             ]}
           />
 
@@ -474,9 +500,11 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-green-500 to-emerald-600"
             href="/projects"
             stats={[
-              { label: "Lập kế hoạch", value: statistics.projects.planning },
+              { label: "Kế hoạch", value: statistics.projects.planning },
               { label: "Đang thực hiện", value: statistics.projects.active },
               { label: "Hoàn thành", value: statistics.projects.completed },
+              { label: "Tạm dừng", value: statistics.projects.on_hold },
+              { label: "Đã hủy", value: statistics.projects.cancelled },
             ]}
           />
 
@@ -499,6 +527,7 @@ export default function HomePage() {
             href="/incidents"
             stats={[
               { label: "Mới", value: statistics.incidents.open },
+              { label: "Đã chỉ đạo", value: statistics.incidents.directed },
               { label: "Đang xử lý", value: statistics.incidents.in_progress },
               { label: "Đã giải quyết", value: statistics.incidents.resolved },
             ]}
@@ -510,9 +539,10 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-teal-500 to-cyan-600"
             href="/plans"
             stats={[
-              { label: "Nháp", value: statistics.plans.draft },
               { label: "Đang thực hiện", value: statistics.plans.active },
               { label: "Hoàn thành", value: statistics.plans.completed },
+              { label: "Tạm dừng", value: statistics.plans.paused },
+              { label: "Hủy", value: statistics.plans.cancelled },
             ]}
           />
 

@@ -127,10 +127,11 @@ export interface Plan {
   id: string;
   title: string;
   description: string;
-  status: "draft" | "active" | "completed";
+  status: "active" | "completed" | "paused" | "cancelled";
   startDate: Date;
   endDate?: Date;
   createdAt: Date;
+  attachments?: string[]; // Links to files
 }
 
 export interface Statistics {
@@ -141,9 +142,10 @@ export interface Statistics {
     total: number;
   };
   tasks: {
-    pending: number;
     in_progress: number;
     completed: number;
+    paused: number;
+    cancelled: number;
     total: number;
   };
   projects: {
@@ -151,25 +153,29 @@ export interface Statistics {
     active: number;
     completed: number;
     on_hold: number;
+    cancelled: number;
     total: number;
   };
   proposals: {
-    draft: number;
     submitted: number;
     approved: number;
     rejected: number;
+    directed: number;
+    draft: number;
     total: number;
   };
   incidents: {
     open: number;
+    directed: number;
     in_progress: number;
     resolved: number;
     total: number;
   };
   plans: {
-    draft: number;
     active: number;
     completed: number;
+    paused: number;
+    cancelled: number;
     total: number;
   };
 }

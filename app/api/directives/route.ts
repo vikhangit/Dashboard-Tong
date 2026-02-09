@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { sheetsService } from '@/lib/sheets-service';
-import { mockDirectives } from '@/lib/mock-data';
 
 // Helper to check if configured
 const isConfigured = () => {
@@ -11,15 +10,12 @@ export async function GET() {
   try {
     if (!isConfigured()) {
         console.warn('Google Sheets not configured, returning mock data');
-        return NextResponse.json(mockDirectives);
     }
 
     const directives = await sheetsService.getDirectives();
     return NextResponse.json(directives);
   } catch (error) {
     console.error('[API] Error fetching directives:', error);
-    // Fallback to mock data on error to prevent UI breakage
-    return NextResponse.json(mockDirectives);
   }
 }
 
@@ -39,11 +35,6 @@ export async function POST(request: Request) {
 
     if (isConfigured()) {
         await sheetsService.syncDirectivesToSheet([newDirective]);
-    } else {
-        mockDirectives.push({
-            ...newDirective,
-            id: Date.now().toString()
-        } as any);
     }
 
     return NextResponse.json(newDirective, { status: 201 });
