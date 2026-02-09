@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Briefcase, Search, Calendar, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,6 +17,7 @@ import { AppPagination } from "@/components/app-pagination";
 import axios from "axios";
 import { Task, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
+import { ReloadButton } from "@/components/reload-button";
 
 export default function TasksPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -52,9 +54,9 @@ export default function TasksPage() {
     applyPagination();
   }, [filteredTasks, currentPage]);
 
-  const fetchAllTasks = async () => {
+  const fetchAllTasks = async (showLoading: boolean = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const output = await axios.get<ApiResponse<Task>>(
         "https://api.apecglobal.net/api/v1/tasks/outside",
         {
@@ -157,7 +159,9 @@ export default function TasksPage() {
       <PageHeader
         title="Công việc"
         icon={<Briefcase className="size-6 text-blue-600" />}
-      />
+      >
+        <ReloadButton onReload={() => fetchAllTasks(false)} />
+      </PageHeader>
 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">
