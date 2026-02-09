@@ -10,17 +10,8 @@ import {
   AlertTriangle,
   Calendar,
   BarChart3,
-  UserPlus,
-  Bell,
-  Menu,
-  Bot,
-  Users,
-  ChevronUp,
-  LayoutGrid,
-  MessageSquare,
   X,
   Send,
-  Trash2,
   Loader2,
   Eraser,
 } from "lucide-react";
@@ -31,7 +22,7 @@ import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea"; // Assuming Textarea exists, otherwise I'll use textarea tag
+import { Textarea } from "@/components/ui/textarea";
 import { Statistics } from "@/lib/types";
 
 export default function HomePage() {
@@ -65,12 +56,16 @@ export default function HomePage() {
   const fetchStatistics = async () => {
     try {
       const response = await fetch("/api/statistics");
-      const data = await response.json();
-      setStatistics(data);
+      const result = await response.json();
+      const stats = result.data as Statistics;
+      setStatistics(stats);
 
-      // Calculate notification count (pending tasks + new directives)
-      const pendingCount = data.tasks.pending + data.directives.pending;
-      setNotificationCount(pendingCount);
+      if (stats) {
+        // Calculate notification count (in_progress tasks + pending directives)
+        const activeCount =
+          (stats.tasks?.in_progress || 0) + (stats.directives?.pending || 0);
+        setNotificationCount(activeCount);
+      }
     } catch (error) {
       console.error("[v0] Error fetching statistics:", error);
     }
@@ -198,7 +193,7 @@ export default function HomePage() {
               icon={ClipboardList}
               label="Chỉ đạo"
               iconColor="text-purple-600"
-              // count={statistics.directives.pending}
+              count={statistics.directives.pending}
             />
 
             <DashboardShortcut
@@ -206,7 +201,7 @@ export default function HomePage() {
               icon={Briefcase}
               label="Công việc"
               iconColor="text-blue-600"
-              /* count={statistics.tasks.pending} */
+              count={statistics.tasks.in_progress}
             />
 
             <DashboardShortcut
@@ -214,7 +209,7 @@ export default function HomePage() {
               icon={FolderKanban}
               label="Dự án"
               iconColor="text-green-600"
-              /* count={statistics.projects.planning} */
+              count={statistics.projects.active}
             />
 
             {/* Row 2 */}
@@ -223,7 +218,7 @@ export default function HomePage() {
               icon={Lightbulb}
               label="Đề xuất"
               iconColor="text-yellow-600"
-              // count={statistics.proposals.submitted}
+              count={statistics.proposals.submitted}
             />
 
             <DashboardShortcut
@@ -231,7 +226,7 @@ export default function HomePage() {
               icon={AlertTriangle}
               label="Sự cố"
               iconColor="text-red-600"
-              // count={statistics.incidents.open}
+              count={statistics.incidents.open}
             />
 
             <DashboardShortcut
@@ -239,7 +234,7 @@ export default function HomePage() {
               icon={Calendar}
               label="Kế hoạch"
               iconColor="text-teal-600"
-              /* count={statistics.plans.draft} */
+              count={statistics.plans.active}
             />
 
             <DashboardShortcut
@@ -492,9 +487,10 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-blue-500 to-cyan-600"
             href="/tasks"
             stats={[
-              { label: "Chờ xử lý", value: statistics.tasks.pending },
               { label: "Đang thực hiện", value: statistics.tasks.in_progress },
               { label: "Hoàn thành", value: statistics.tasks.completed },
+              { label: "Tạm dừng", value: statistics.tasks.paused },
+              { label: "Hủy", value: statistics.tasks.cancelled },
             ]}
           />
 
@@ -504,9 +500,11 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-green-500 to-emerald-600"
             href="/projects"
             stats={[
-              { label: "Lập kế hoạch", value: statistics.projects.planning },
+              { label: "Kế hoạch", value: statistics.projects.planning },
               { label: "Đang thực hiện", value: statistics.projects.active },
               { label: "Hoàn thành", value: statistics.projects.completed },
+              { label: "Tạm dừng", value: statistics.projects.on_hold },
+              { label: "Đã hủy", value: statistics.projects.cancelled },
             ]}
           />
 
@@ -529,6 +527,7 @@ export default function HomePage() {
             href="/incidents"
             stats={[
               { label: "Mới", value: statistics.incidents.open },
+              { label: "Đã chỉ đạo", value: statistics.incidents.directed },
               { label: "Đang xử lý", value: statistics.incidents.in_progress },
               { label: "Đã giải quyết", value: statistics.incidents.resolved },
             ]}
@@ -540,9 +539,10 @@ export default function HomePage() {
             iconBgColor="bg-gradient-to-br from-teal-500 to-cyan-600"
             href="/plans"
             stats={[
-              { label: "Nháp", value: statistics.plans.draft },
               { label: "Đang thực hiện", value: statistics.plans.active },
               { label: "Hoàn thành", value: statistics.plans.completed },
+              { label: "Tạm dừng", value: statistics.plans.paused },
+              { label: "Hủy", value: statistics.plans.cancelled },
             ]}
           />
 

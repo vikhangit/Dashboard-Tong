@@ -11,6 +11,7 @@ import { AppPagination } from "@/components/app-pagination";
 import { Plan } from "@/lib/types";
 import { FileIconComponent } from "@/components/file-icon";
 import { ExpandableText } from "@/components/expandable-text";
+import { isImageUrl } from "@/lib/file-utils";
 import axios from "axios";
 import {
   Calendar,
@@ -262,23 +263,45 @@ export default function PlansPage() {
 
                       {plan.attachments && plan.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2 w-full">
-                          {plan.attachments.map((link, index) => (
-                            <a
-                              key={index}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-xs bg-secondary/30 hover:bg-secondary px-2 py-1.5 rounded-md transition-colors text-foreground border border-transparent hover:border-border"
-                              title={link}
-                            >
-                              <div className="w-5 h-5">
-                                <FileIconComponent url={link} />
-                              </div>
-                              <span className="truncate max-w-[300px] font-medium text-blue-600 hover:text-blue-800 hover:underline">
-                                {link}
-                              </span>
-                            </a>
-                          ))}
+                          {plan.attachments.map((link, index) => {
+                            if (isImageUrl(link)) {
+                              return (
+                                <a
+                                  key={index}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative group overflow-hidden rounded-md border border-border hover:border-primary/50 transition-all"
+                                  title={link}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={link}
+                                    alt="Attachment"
+                                    className="h-16 w-16 object-cover"
+                                  />
+                                </a>
+                              );
+                            }
+
+                            return (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-xs bg-secondary/30 hover:bg-secondary px-2 py-1.5 rounded-md transition-colors text-foreground border border-transparent hover:border-border"
+                                title={link}
+                              >
+                                <div className="w-5 h-5">
+                                  <FileIconComponent url={link} />
+                                </div>
+                                <span className="truncate max-w-[300px] font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                  {link}
+                                </span>
+                              </a>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
