@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import {
   CheckCircle2,
@@ -59,45 +59,8 @@ const statusConfig = {
   },
 };
 
-function DirectiveContent({ content }: { content: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    if (textRef.current) {
-      setIsOverflowing(
-        textRef.current.scrollHeight > textRef.current.clientHeight,
-      );
-    }
-  }, [content]);
-
-  return (
-    <div className="mb-3">
-      <p
-        ref={textRef}
-        onClick={() => (isOverflowing || expanded) && setExpanded(!expanded)}
-        className={`text-xl text-foreground leading-relaxed font-medium transition-all ${
-          expanded ? "" : "line-clamp-3"
-        } ${isOverflowing || expanded ? "cursor-pointer" : ""}`}
-      >
-        {content}
-      </p>
-      {(isOverflowing || expanded) && (
-        <Button
-          variant="link"
-          className="p-0 h-auto font-semibold text-blue-600 hover:text-blue-700 mt-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded(!expanded);
-          }}
-        >
-          {expanded ? "Thu gọn" : "Xem thêm"}
-        </Button>
-      )}
-    </div>
-  );
-}
+import { AppPagination } from "@/components/app-pagination";
+import { ExpandableText } from "@/components/expandable-text";
 
 function ActionContent({ content }: { content: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -137,6 +100,11 @@ export default function DirectivesPage() {
   const [directives, setDirectives] = useState<Directive[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | Directive["status"]>("all");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDirective, setNewDirective] = useState({
     content: "",
@@ -174,6 +142,20 @@ export default function DirectivesPage() {
     filter === "all"
       ? directives
       : directives.filter((d) => d.status === filter);
+
+  // Pagination logic
+  const paginatedDirectives = filteredDirectives.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit,
+  );
+
+  useEffect(() => {
+    setPagination((prev) => ({
+      ...prev,
+      total: filteredDirectives.length,
+      page: 1,
+    }));
+  }, [filter, directives.length]);
 
   const handleAddDirective = async () => {
     if (!newDirective.content.trim()) return;
@@ -353,7 +335,7 @@ export default function DirectivesPage() {
               <p className="text-muted-foreground">Không có chỉ đạo nào</p>
             </div>
           ) : (
-            filteredDirectives.map((directive) => {
+            paginatedDirectives.map((directive) => {
               const config =
                 statusConfig[directive.status] || statusConfig.pending;
               const StatusIcon = config.icon;
@@ -383,7 +365,12 @@ export default function DirectivesPage() {
                       </span>
                     </div>
 
-                    <DirectiveContent content={directive.content} />
+                    <div className="mb-3">
+                      <ExpandableText
+                        text={directive.content}
+                        className="text-xl text-foreground leading-relaxed font-medium"
+                      />
+                    </div>
 
                     {directive.actionContent && (
                       <ActionContent content={directive.actionContent} />
@@ -409,6 +396,22 @@ export default function DirectivesPage() {
             })
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination.total > 0 && (
+          <div className="mt-6">
+            <AppPagination
+              page={pagination.page}
+              total={pagination.total}
+              limit={pagination.limit}
+              onChange={(newPage) =>
+                setPagination((prev) => ({ ...prev, page: newPage }))
+              }
+              itemName="chỉ đạo"
+              currentCount={paginatedDirectives.length}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

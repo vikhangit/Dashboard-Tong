@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockProposals } from "@/lib/mock-data";
+import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
-import { FormattedText } from "@/components/formatted-text";
+import { AppPagination } from "@/components/app-pagination";
 
 const statusConfig = {
   submitted: {
@@ -54,13 +54,17 @@ export default function ProposalsPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | keyof typeof statusConfig>(
     "all",
   );
   const [recordingProposalId, setRecordingProposalId] = useState<string | null>(
     null,
   );
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+  });
 
   const { isRecording, isTranscribing, startRecording, stopRecording } =
     useVoiceRecorder({
@@ -82,17 +86,19 @@ export default function ProposalsPage() {
   const filteredProposals =
     filter === "all" ? proposals : proposals.filter((p) => p.status === filter);
 
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  // Pagination Logic
+  const paginatedProposals = filteredProposals.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit,
+  );
+
+  useEffect(() => {
+    setPagination((prev) => ({
+      ...prev,
+      total: filteredProposals.length,
+      page: 1,
+    }));
+  }, [filter, proposals.length]);
 
   useEffect(() => {
     fetchProposals();
@@ -208,7 +214,7 @@ export default function ProposalsPage() {
         </div>
 
         <div className="space-y-4">
-          {filteredProposals.map((proposal) => (
+          {paginatedProposals.map((proposal) => (
             <Card key={proposal.id} className="glass-card p-5">
               <div className="flex items-start gap-4">
                 <div className="flex-1">
@@ -228,15 +234,12 @@ export default function ProposalsPage() {
                     </div>
                     <h3 className="text-lg font-semibold">{proposal.title}</h3>
                   </div>
-                  <FormattedText
-                    text={proposal.description}
-                    className={cn(
-                      "text-lg text-muted-foreground mb-3 cursor-pointer",
-                      !expandedIds.has(proposal.id) && "line-clamp-2",
-                    )}
-                    onClick={() => toggleExpanded(proposal.id)}
-                    title="Nhấn để xem chi tiết"
-                  />
+                  <div className="mb-3">
+                    <ExpandableText
+                      text={proposal.description}
+                      className="text-lg text-muted-foreground"
+                    />
+                  </div>
 
                   {/* Direction Section - Minimal & Conditional */}
                   {(editingId === proposal.id || proposal.directionContent) && (
@@ -367,6 +370,22 @@ export default function ProposalsPage() {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {pagination.total > 0 && (
+          <div className="mt-6">
+            <AppPagination
+              page={pagination.page}
+              total={pagination.total}
+              limit={pagination.limit}
+              onChange={(newPage) =>
+                setPagination((prev) => ({ ...prev, page: newPage }))
+              }
+              itemName="đề xuất"
+              currentCount={paginatedProposals.length}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

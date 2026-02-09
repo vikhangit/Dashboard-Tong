@@ -13,14 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { AppPagination } from "@/components/app-pagination";
 import axios from "axios";
 import { Task, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
@@ -419,82 +412,16 @@ export default function TasksPage() {
         {/* Pagination */}
         {pagination.total > 0 && (
           <div className="mt-6">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    className={
-                      pagination.page <= 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                    onClick={() => {
-                      if (pagination.page > 1) {
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: prev.page - 1,
-                        }));
-                      }
-                    }}
-                  />
-                </PaginationItem>
-
-                {(() => {
-                  const total = pagination.total_pages;
-                  const current = pagination.page;
-                  const maxVisible = 5;
-
-                  let startPage = Math.max(1, current - 2);
-                  const endPage = Math.min(total, startPage + maxVisible - 1);
-
-                  if (endPage - startPage + 1 < maxVisible) {
-                    startPage = Math.max(1, endPage - maxVisible + 1);
-                  }
-
-                  const length = Math.min(maxVisible, total);
-
-                  return Array.from({ length }, (_, i) => startPage + i).map(
-                    (pageNum) => (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          isActive={pagination.page === pageNum}
-                          onClick={() =>
-                            setPagination((prev) => ({
-                              ...prev,
-                              page: pageNum,
-                            }))
-                          }
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  );
-                })()}
-
-                <PaginationItem>
-                  <PaginationNext
-                    className={
-                      pagination.page >= pagination.total_pages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                    onClick={() => {
-                      if (pagination.page < pagination.total_pages) {
-                        setPagination((prev) => ({
-                          ...prev,
-                          page: prev.page + 1,
-                        }));
-                      }
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            <div className="text-center text-xs text-muted-foreground mt-2">
-              Hiển thị {displayedTasks.length} / {pagination.total} công việc
-            </div>
+            <AppPagination
+              page={pagination.page}
+              total={pagination.total}
+              limit={pagination.limit}
+              onChange={(newPage) =>
+                setPagination((prev) => ({ ...prev, page: newPage }))
+              }
+              itemName="công việc"
+              currentCount={displayedTasks.length}
+            />
           </div>
         )}
       </div>

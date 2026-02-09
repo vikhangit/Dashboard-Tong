@@ -43,6 +43,7 @@ class SheetsService {
         incidents: "'Sự cố'!A2:G",
         tasks: "Tasks!A2:E", // Default
         projects: "Projects!A2:E", // Default
+        plans: "'Kế hoạch'!A2:G",
       },
     };
   }
@@ -506,6 +507,39 @@ class SheetsService {
     ];
 
     await this.updateRow(range, values);
+  }
+
+  async getPlans(): Promise<any[]> {
+    const range = this.config.ranges.plans || "'Kế hoạch'!A2:G";
+    const rows = await this.readRange(range);
+
+    // Columns: Trạng thái | Thời gian tạo | Tiêu đề | Nội dung | Thời gian bắt đầu | Thời gian kết thúc | File đính kèm
+    const plans = rows.map((row, index) => {
+      const statusRaw = (row[0] as string)?.trim();
+      let status = "draft";
+      if (statusRaw === "Đang thực hiện") status = "active";
+      else if (statusRaw === "Hoàn thành") status = "completed";
+      else if (statusRaw === "Tạm dừng") status = "paused";
+      else if (statusRaw === "Hủy") status = "cancelled";
+
+      return {
+        id: `row-${index + 2}`,
+        status,
+        createdAt: this.parseDate(row[1] as string),
+        title: row[2],
+        description: row[3],
+        startDate: this.parseDate(row[4] as string),
+        endDate: row[5] ? this.parseDate(row[5] as string) : undefined,
+        attachments: row[6]
+          ? (row[6] as string)
+              .split(/[\n,;]+/) // Split by newline, comma, or semicolon
+              .map((link) => link.trim())
+              .filter((link) => link.length > 0)
+          : [],
+      };
+    });
+
+    return plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 

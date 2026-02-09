@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/expandable-text";
 import { Incident } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
-import { FormattedText } from "@/components/formatted-text";
+import { AppPagination } from "@/components/app-pagination";
 
 const statusConfig = {
   open: {
@@ -53,7 +54,6 @@ export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | keyof typeof statusConfig>(
     "all",
   );
@@ -62,6 +62,11 @@ export default function IncidentsPage() {
   const [recordingIncidentId, setRecordingIncidentId] = useState<string | null>(
     null,
   );
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+  });
 
   const { isRecording, isTranscribing, startRecording, stopRecording } =
     useVoiceRecorder({
@@ -83,17 +88,19 @@ export default function IncidentsPage() {
   const filteredIncidents =
     filter === "all" ? incidents : incidents.filter((i) => i.status === filter);
 
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  // Pagination Logic
+  const paginatedIncidents = filteredIncidents.slice(
+    (pagination.page - 1) * pagination.limit,
+    pagination.page * pagination.limit,
+  );
+
+  useEffect(() => {
+    setPagination((prev) => ({
+      ...prev,
+      total: filteredIncidents.length,
+      page: 1,
+    }));
+  }, [filter, incidents.length]);
 
   const startEditing = (incident: Incident) => {
     setEditingId(incident.id);
@@ -169,7 +176,10 @@ export default function IncidentsPage() {
 
   return (
     <div className="min-h-screen gradient-holographic">
-      <PageHeader title="Sự cố" icon={<AlertTriangle className="size-6 text-red-600" />} />
+      <PageHeader
+        title="Sự cố"
+        icon={<AlertTriangle className="size-6 text-red-600" />}
+      />
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}
@@ -222,7 +232,7 @@ export default function IncidentsPage() {
         </div>
 
         <div className="space-y-4">
-          {filteredIncidents.map((incident) => (
+          {paginatedIncidents.map((incident) => (
             <Card key={incident.id} className="glass-card p-5">
               <div className="flex items-start gap-4">
                 <div className="flex-1">
@@ -247,15 +257,12 @@ export default function IncidentsPage() {
                     <h3 className="text-lg font-semibold">{incident.title}</h3>
                   </div>
 
-                  <FormattedText
-                    text={incident.description}
-                    className={cn(
-                      "text-lg text-muted-foreground mb-3 cursor-pointer",
-                      !expandedIds.has(incident.id) && "line-clamp-2",
-                    )}
-                    onClick={() => toggleExpanded(incident.id)}
-                    title="Nhấn để xem chi tiết"
-                  />
+                  <div className="mb-3">
+                    <ExpandableText
+                      text={incident.description}
+                      className="text-lg text-muted-foreground"
+                    />
+                  </div>
 
                   {(editingId === incident.id || incident.directionContent) && (
                     <div className="mt-4">
@@ -381,6 +388,22 @@ export default function IncidentsPage() {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {pagination.total > 0 && (
+          <div className="mt-6">
+            <AppPagination
+              page={pagination.page}
+              total={pagination.total}
+              limit={pagination.limit}
+              onChange={(newPage) =>
+                setPagination((prev) => ({ ...prev, page: newPage }))
+              }
+              itemName="sự cố"
+              currentCount={paginatedIncidents.length}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

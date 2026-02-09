@@ -127,10 +127,11 @@ export interface Plan {
   id: string;
   title: string;
   description: string;
-  status: "draft" | "active" | "completed";
+  status: "draft" | "active" | "completed" | "paused" | "cancelled";
   startDate: Date;
   endDate?: Date;
   createdAt: Date;
+  attachments?: string[]; // Links to files
 }
 
 export interface Statistics {
