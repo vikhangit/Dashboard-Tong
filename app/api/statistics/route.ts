@@ -44,7 +44,7 @@ export async function GET() {
         "https://api.apecglobal.net/api/v1/tasks/outside?limit=100",
       ),
       fetchWithTimeout(
-        "https://apec-global-backend.vercel.app/api/v1/projects/outside?limit=100",
+        "https://api.apecglobal.net/api/v1/projects/outside?limit=100",
       ),
     ]);
 

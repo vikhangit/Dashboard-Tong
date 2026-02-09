@@ -21,9 +21,9 @@ interface AppPaginationProps {
 }
 
 export function AppPagination({
-  page,
-  total,
-  limit,
+  page = 1,
+  total = 0,
+  limit = 10,
   onChange,
   className,
   itemName = "mục",

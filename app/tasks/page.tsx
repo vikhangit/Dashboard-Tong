@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Briefcase, Search, Calendar, User } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,20 +17,13 @@ import axios from "axios";
 import { Task, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
 
-// Remove old configs if not needed, or keep for reference if they are used elsewhere (though we replaced them).
-// const statusConfig = ...
-// const priorityConfig = ...
-
 export default function TasksPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [displayedTasks, setDisplayedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    total_pages: 0,
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 10;
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -45,22 +37,22 @@ export default function TasksPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Fetch all tasks on mount and when search changes
   useEffect(() => {
-    fetchTasks();
-  }, []); // Only run once on mount
+    fetchAllTasks();
+  }, [debouncedSearch]);
 
+  // Apply filters when allTasks or filters change
   useEffect(() => {
-    filterAndPaginateTasks();
-  }, [
-    allTasks,
-    debouncedSearch,
-    statusFilter,
-    projectFilter,
-    assigneeFilter,
-    pagination.page,
-  ]);
+    applyFilters();
+  }, [allTasks, statusFilter, projectFilter, assigneeFilter]);
 
-  const fetchTasks = async () => {
+  // Apply pagination when filteredTasks or currentPage changes
+  useEffect(() => {
+    applyPagination();
+  }, [filteredTasks, currentPage]);
+
+  const fetchAllTasks = async () => {
     try {
       setLoading(true);
       const output = await axios.get<ApiResponse<Task>>(
@@ -68,7 +60,8 @@ export default function TasksPage() {
         {
           params: {
             page: 1,
-            limit: 1000, // Fetch a large number to get "all" tasks for client-side filtering
+            limit: 9999, // Fetch all tasks
+            ...(debouncedSearch && { search: debouncedSearch }),
           },
         },
       );
@@ -83,16 +76,8 @@ export default function TasksPage() {
     }
   };
 
-  const filterAndPaginateTasks = () => {
+  const applyFilters = () => {
     let filtered = [...allTasks];
-
-    // Filter by search
-    if (debouncedSearch) {
-      const lowerSearch = debouncedSearch.toLowerCase();
-      filtered = filtered.filter((task) =>
-        task.name.toLowerCase().includes(lowerSearch),
-      );
-    }
 
     // Filter by status
     if (statusFilter !== "all") {
@@ -115,26 +100,20 @@ export default function TasksPage() {
       );
     }
 
-    // Pagination
-    const total = filtered.length;
-    const total_pages = Math.ceil(total / pagination.limit);
-    const startIndex = (pagination.page - 1) * pagination.limit;
-    const endIndex = startIndex + pagination.limit;
-    const paginated = filtered.slice(startIndex, endIndex);
+    setFilteredTasks(filtered);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  };
 
-    setPagination((prev) => ({
-      ...prev,
-      total,
-      total_pages,
-    }));
-    setDisplayedTasks(paginated);
+  const applyPagination = () => {
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    setDisplayedTasks(filteredTasks.slice(startIndex, endIndex));
   };
 
   const statusConfig: Record<
     number,
     { label: string; color: string; textColor: string; icon?: any }
   > = {
-    1: { label: "Mới tạo", color: "bg-blue-500", textColor: "text-blue-700" },
     2: {
       label: "Đang thực hiện",
       color: "bg-yellow-500",
@@ -208,10 +187,7 @@ export default function TasksPage() {
               return (
                 <button
                   key={option.value}
-                  onClick={() => {
-                    setStatusFilter(option.value);
-                    setPagination((prev) => ({ ...prev, page: 1 }));
-                  }}
+                  onClick={() => setStatusFilter(option.value)}
                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 snap-start border ${
                     isActive
                       ? config
@@ -230,13 +206,7 @@ export default function TasksPage() {
 
           {/* Project & Assignee Filters */}
           <div className="grid grid-cols-1 gap-3">
-            <Select
-              value={projectFilter}
-              onValueChange={(value) => {
-                setProjectFilter(value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            >
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700 hover:bg-gray-100/80 transition-colors !h-auto py-2">
                 <div className="flex items-start gap-2 max-w-full text-left">
                   <Briefcase className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
@@ -268,13 +238,7 @@ export default function TasksPage() {
               </SelectContent>
             </Select>
 
-            <Select
-              value={assigneeFilter}
-              onValueChange={(value) => {
-                setAssigneeFilter(value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            >
+            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
               <SelectTrigger className="bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700 hover:bg-gray-100/80 transition-colors !h-auto py-2">
                 <div className="flex items-start gap-2 max-w-full text-left">
                   <User className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
@@ -410,15 +374,13 @@ export default function TasksPage() {
         </div>
 
         {/* Pagination */}
-        {pagination.total > 0 && (
+        {filteredTasks.length > 0 && (
           <div className="mt-6">
             <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
+              page={currentPage}
+              total={filteredTasks.length}
+              limit={limit}
+              onChange={setCurrentPage}
               itemName="công việc"
               currentCount={displayedTasks.length}
             />

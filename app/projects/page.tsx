@@ -216,7 +216,7 @@ export default function ProjectsPage() {
       setLoading(true);
       // Fetch ALL projects at once
       const response = await axios.get<ProjectApiResponse>(
-        "https://apec-global-backend.vercel.app/api/v1/projects/outside",
+        "https://api.apecglobal.net/api/v1/projects/outside",
         {
           params: {
             limit: 1000, // Fetch big limit to get all
