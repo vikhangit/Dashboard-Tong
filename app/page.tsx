@@ -22,6 +22,7 @@ import {
   Send,
   Trash2,
   Loader2,
+  Eraser,
 } from "lucide-react";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { StatsCard } from "@/components/stats-card";
@@ -41,6 +42,7 @@ export default function HomePage() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [lastTranscript, setLastTranscript] = useState<string>("");
+  const [showDirectiveInput, setShowDirectiveInput] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
@@ -96,6 +98,7 @@ export default function HomePage() {
           setLastTranscript((prev) =>
             prev ? `${prev} ${data.text}` : data.text,
           );
+          setShowDirectiveInput(true);
         }
       } catch (err) {
         console.error("Transcription failed", err);
@@ -106,11 +109,19 @@ export default function HomePage() {
       setLastTranscript((prev) =>
         prev ? `${prev} ${transcript}` : transcript,
       );
+      setShowDirectiveInput(true);
     }
   };
 
   const handleCancelDirective = () => {
+    // This is the close button handler
     setLastTranscript("");
+    setShowDirectiveInput(false);
+  };
+
+  const handleClearContent = () => {
+    setLastTranscript("");
+    // Keep input open
   };
 
   const handleSendDirective = async () => {
@@ -140,6 +151,7 @@ export default function HomePage() {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
         setLastTranscript(""); // Clear after sending
+        setShowDirectiveInput(false);
         fetchStatistics();
       }
     } catch (error) {
@@ -243,7 +255,7 @@ export default function HomePage() {
         <div className="flex-1 flex flex-col justify-end items-center px-4 pb-4">
           <div className="w-full max-w-sm flex flex-col items-center gap-4">
             {/* Label */}
-            {!lastTranscript && !showSuccess && (
+            {!showDirectiveInput && !showSuccess && (
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
                 Chỉ đạo công việc
               </h2>
@@ -259,28 +271,37 @@ export default function HomePage() {
             )}
 
             {/* Transcript Editor */}
-            {lastTranscript && (
+            {showDirectiveInput && (
               <div className="w-full animate-in fade-in slide-in-from-bottom-2 relative group shadow-lg rounded-xl">
                 <Textarea
                   value={lastTranscript}
                   onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[100px] p-3 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                  className="min-h-[100px] p-3 pb-12 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
                   placeholder="Nội dung chỉ đạo..."
                 />
 
-                {/* Clear Button */}
+                {/* Close Button (Updated Title) */}
                 <Button
                   onClick={handleCancelDirective}
-                  variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full"
-                  title="Xóa nội dung"
+                  className="absolute top-2 right-2 h-8 w-8 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                  title="Đóng"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="size-5" />
                 </Button>
 
-                {/* Send Button */}
-                <div className="absolute bottom-2 right-2">
+                {/* Send Button & Clear Button */}
+                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                  <Button
+                    onClick={handleClearContent}
+                    size="sm"
+                    className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Xóa văn bản"
+                  >
+                    <Eraser className="h-4 w-4 mr-2" />
+                    Xóa
+                  </Button>
+
                   <Button
                     onClick={handleSendDirective}
                     disabled={isSending}
@@ -332,34 +353,43 @@ export default function HomePage() {
         {/* Voice Recording Section - Only on Desktop */}
         {!isMobile && (
           <div className="text-center mb-12">
-            {!lastTranscript && (
+            {!showDirectiveInput && (
               <h2 className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wide">
                 Chỉ đạo công việc
               </h2>
             )}
 
             {/* Transcript Editor - Compact & Above Recorder (Desktop) */}
-            {lastTranscript && !isTranscribing && (
+            {showDirectiveInput && !isTranscribing && (
               <div className="mb-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-2 relative">
                 <Textarea
                   value={lastTranscript}
                   onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[100px] p-4 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                  className="min-h-[150px] p-4 pb-14 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
                   placeholder="Nội dung chỉ đạo..."
                 />
 
-                {/* Clear Button */}
+                {/* Close Button (Updated Title) */}
                 <Button
                   onClick={handleCancelDirective}
-                  variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  className="absolute top-2 right-2 h-10 w-10 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                  title="Đóng - Hủy bỏ"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-6 w-6" />
                 </Button>
 
-                {/* Send Button */}
-                <div className="absolute bottom-3 right-3">
+                {/* Send Button & Clear Button */}
+                <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+                  <Button
+                    onClick={handleClearContent}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full px-4 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Xóa văn bản"
+                  >
+                    <Eraser className="h-5 w-5 mr-2" />
+                    Xóa văn bản
+                  </Button>
+
                   <Button
                     onClick={handleSendDirective}
                     disabled={isSending}
