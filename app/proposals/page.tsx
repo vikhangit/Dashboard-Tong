@@ -10,6 +10,7 @@ import {
   Mic,
   Loader2,
   FileText,
+  Link as LinkIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,10 @@ import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
+import { AttachmentList } from "@/components/attachment-list";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
+import { CollapsibleSection } from "@/components/collapsible-section";
 
 const statusConfig = {
   submitted: {
@@ -275,6 +278,12 @@ export default function ProposalsPage() {
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {proposal.attachment && proposal.attachment.length > 0 && (
+                    <CollapsibleSection title="Minh chứng" defaultOpen={true}>
+                      <AttachmentList attachments={proposal.attachment} />
+                    </CollapsibleSection>
                   )}
 
                   {/* Approval Actions */}

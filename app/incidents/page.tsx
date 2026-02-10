@@ -21,6 +21,8 @@ import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
+import { CollapsibleSection } from "@/components/collapsible-section";
+import { AttachmentList } from "@/components/attachment-list";
 
 const statusConfig = {
   open: {
@@ -286,6 +288,12 @@ export default function IncidentsPage() {
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {incident.attachment && incident.attachment.length > 0 && (
+                    <CollapsibleSection title="Minh chứng" defaultOpen={true}>
+                      <AttachmentList attachments={incident.attachment} />
+                    </CollapsibleSection>
                   )}
 
                   <div className="mt-4 flex items-center justify-between">

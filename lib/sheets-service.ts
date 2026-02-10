@@ -38,9 +38,9 @@ class SheetsService {
       clientEmail: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
       privateKey: process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       ranges: {
-        directives: "'Chỉ đạo'!A2:G",
-        proposals: "'Đề xuất'!A2:F",
-        incidents: "'Sự cố'!A2:G",
+        directives: "'Chỉ đạo'!A2:H",
+        proposals: "'Đề xuất'!A2:G",
+        incidents: "'Sự cố'!A2:H",
         tasks: "Tasks!A2:E", // Default
         projects: "Projects!A2:E", // Default
         plans: "'Kế hoạch'!A2:G",
@@ -278,7 +278,7 @@ class SheetsService {
   }
 
   async getDirectives(): Promise<any[]> {
-    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:G";
+    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:H";
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
@@ -291,6 +291,12 @@ class SheetsService {
       assignedTo: row[4],
       deadline: row[5] ? this.fromSheetDate(row[5] as string) : undefined,
       actionContent: row[6] || "",
+      attachment: row[7]
+        ? (row[7] as string)
+            .split(",")
+            .map((link) => link.trim())
+            .filter((link) => link.length > 0)
+        : [],
     }));
 
     // Sort by createdAt desc
@@ -300,7 +306,7 @@ class SheetsService {
   }
 
   async syncDirectivesToSheet(directives: any[]): Promise<void> {
-    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:G";
+    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:H";
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
     const values = directives.map((d) => {
@@ -316,6 +322,7 @@ class SheetsService {
         d.assignedTo || "",
         d.deadline ? this.toVietnamDateString(d.deadline, true) : "",
         d.actionContent || "",
+        d.attachment ? d.attachment.join(", ") : "",
       ];
     });
 
@@ -377,7 +384,7 @@ class SheetsService {
   }
 
   async getIncidents(): Promise<any[]> {
-    const range = this.config.ranges.incidents || "'Sự cố'!A2:G";
+    const range = this.config.ranges.incidents || "'Sự cố'!A2:H";
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Sự cố | Mức độ | Chi tiết | Chỉ đạo
@@ -390,6 +397,12 @@ class SheetsService {
       severity: this.mapSeverity(row[4] as string),
       description: row[5],
       directionContent: row[6] || "",
+      attachment: row[7]
+        ? (row[7] as string)
+            .split(",")
+            .map((link) => link.trim())
+            .filter((link) => link.length > 0)
+        : [],
     }));
 
     return incidents.sort(
@@ -398,7 +411,7 @@ class SheetsService {
   }
 
   async getProposals(): Promise<any[]> {
-    const range = this.config.ranges.proposals || "'Đề xuất'!A2:F";
+    const range = this.config.ranges.proposals || "'Đề xuất'!A2:G";
     const rows = await this.readRange(range);
 
     // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Đề xuất | Chi tiết | Nội dung chỉ đạo
@@ -419,6 +432,12 @@ class SheetsService {
         title: row[3],
         description: row[4],
         directionContent: row[5] || "",
+        attachment: row[6]
+          ? (row[6] as string)
+              .split(",")
+              .map((link) => link.trim())
+              .filter((link) => link.length > 0)
+          : [],
       };
     });
 
@@ -428,7 +447,7 @@ class SheetsService {
   }
 
   async syncProposalsToSheet(proposals: any[]): Promise<void> {
-    const range = this.config.ranges.proposals || "'Đề xuất'!A2:F";
+    const range = this.config.ranges.proposals || "'Đề xuất'!A2:G";
 
     // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Đề xuất | Chi tiết | Nội dung chỉ đạo
     const values = proposals.map((p) => {
@@ -444,7 +463,9 @@ class SheetsService {
         this.toVietnamDateString(p.updatedAt, true),
         p.title,
         p.description,
+        p.description,
         p.directionContent || "",
+        p.attachment ? p.attachment.join(", ") : "",
       ];
     });
 
@@ -459,10 +480,10 @@ class SheetsService {
     }
 
     // We need to write to the specific row.
-    // Columns: A:Status, B:Created, C:Updated, D:Title, E:Desc, F:Direction
+    // Columns: A:Status, B:Created, C:Updated, D:Title, E:Desc, F:Direction, G: Attachments
     // We will overwrite the whole row to be safe, or specific cells?
     // Overwriting whole row ensures consistency.
-    const range = `'Đề xuất'!A${rowIndex}:F${rowIndex}`;
+    const range = `'Đề xuất'!A${rowIndex}:G${rowIndex}`;
 
     let statusLabel = "Nháp";
     if (proposal.status === "approved") statusLabel = "Đã duyệt";
@@ -478,6 +499,7 @@ class SheetsService {
         proposal.title,
         proposal.description,
         proposal.directionContent || "",
+        proposal.attachment ? proposal.attachment.join(", ") : "",
       ],
     ];
 
@@ -490,7 +512,7 @@ class SheetsService {
       throw new Error(`Invalid incident ID: ${incident.id}`);
     }
 
-    const range = `'Sự cố'!A${rowIndex}:G${rowIndex}`;
+    const range = `'Sự cố'!A${rowIndex}:H${rowIndex}`;
 
     // Map fields back to Vietnamese
     let statusLabel = "Mới";
@@ -512,6 +534,7 @@ class SheetsService {
         severityLabel,
         incident.description,
         incident.directionContent || "",
+        incident.attachment ? incident.attachment.join(", ") : "",
       ],
     ];
 
