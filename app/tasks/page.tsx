@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppPagination } from "@/components/app-pagination";
+import { StatusFilter } from "@/components/status-filter";
 import axios from "axios";
 import { Task, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
@@ -113,30 +114,26 @@ export default function TasksPage() {
   };
 
   const statusConfig: Record<
-    number,
+    string,
     { label: string; color: string; textColor: string; icon?: any }
   > = {
-    2: {
+    "2": {
       label: "Đang thực hiện",
       color: "bg-yellow-500",
       textColor: "text-yellow-700",
     },
-    3: { label: "Tạm dừng", color: "bg-gray-500", textColor: "text-gray-700" },
-    4: {
+    "3": {
+      label: "Tạm dừng",
+      color: "bg-gray-500",
+      textColor: "text-gray-700",
+    },
+    "4": {
       label: "Hoàn thành",
       color: "bg-green-600",
       textColor: "text-green-700",
     },
-    5: { label: "Hủy", color: "bg-red-500", textColor: "text-red-700" },
+    "5": { label: "Hủy", color: "bg-red-500", textColor: "text-red-700" },
   };
-
-  const statusOptions = [
-    { value: "all", label: "Tất cả" },
-    { value: "2", label: "Đang thực hiện" },
-    { value: "4", label: "Hoàn thành" },
-    { value: "3", label: "Tạm dừng" },
-    { value: "5", label: "Hủy" },
-  ];
 
   // Extract unique projects and assignees
   const uniqueProjects = Array.from(
@@ -180,33 +177,21 @@ export default function TasksPage() {
         {/* Filters */}
         <div className="flex flex-col gap-4 mb-6">
           {/* Status Filter (Horizontal Scroll) */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
-            {statusOptions.map((option) => {
-              const isActive = statusFilter === option.value;
-              const config =
-                option.value === "all"
-                  ? null
-                  : statusConfig[Number(option.value)];
-
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => setStatusFilter(option.value)}
-                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 snap-start border ${
-                    isActive
-                      ? config
-                        ? `${config.color} text-white border-transparent shadow-md`
-                        : "bg-primary text-primary-foreground border-primary shadow-md"
-                      : config
-                        ? `${config.textColor} border-current/20 bg-white/90 hover:bg-accent hover:text-accent-foreground`
-                        : "bg-background border-border text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
+          <StatusFilter
+            filter={statusFilter}
+            onFilterChange={setStatusFilter}
+            config={statusConfig}
+            totalCount={allTasks.length}
+            counts={allTasks.reduce(
+              (acc, task) => {
+                const status = String(task.status.id);
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="flex-wrap"
+          />
 
           {/* Project & Assignee Filters */}
           <div className="grid grid-cols-1 gap-3">
@@ -294,7 +279,7 @@ export default function TasksPage() {
             </div>
           ) : (
             displayedTasks.map((task) => {
-              const config = statusConfig[task.status.id] || {
+              const config = statusConfig[String(task.status.id)] || {
                 label: task.status.name,
                 color: "bg-gray-400",
                 textColor: "text-gray-600",

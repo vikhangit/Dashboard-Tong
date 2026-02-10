@@ -9,7 +9,7 @@ interface BottomNavProps {
 export function BottomNav({ showDashboard, setShowDashboard }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 glass-card border-t py-2 px-3 z-50 bg-white/80 backdrop-blur-md">
-      <div className="container mx-auto flex items-center justify-around gap-2">
+      <div className="container mx-auto flex items-center justify-around gap-2 pb-1">
         <button
           onClick={() => setShowDashboard(false)}
           className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${

@@ -20,27 +20,32 @@ import { Incident } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
 import { ReloadButton } from "@/components/reload-button";
+import { StatusFilter } from "@/components/status-filter";
 
 const statusConfig = {
   open: {
     label: "Mới",
-    color: "text-red-700 bg-red-100",
-    activeParams: "bg-red-600 text-white",
+    color: "bg-red-600",
+    textColor: "text-red-700",
+    badgeColor: "text-red-700 bg-red-100",
   },
   directed: {
     label: "Đã chỉ đạo",
-    color: "text-purple-700 bg-purple-100",
-    activeParams: "bg-purple-600 text-white",
+    color: "bg-purple-600",
+    textColor: "text-purple-700",
+    badgeColor: "text-purple-700 bg-purple-100",
   },
   in_progress: {
     label: "Đang xử lý",
-    color: "text-blue-700 bg-blue-100",
-    activeParams: "bg-blue-600 text-white",
+    color: "bg-blue-600",
+    textColor: "text-blue-700",
+    badgeColor: "text-blue-700 bg-blue-100",
   },
   resolved: {
     label: "Đã giải quyết",
-    color: "text-green-700 bg-green-100",
-    activeParams: "bg-green-600 text-white",
+    color: "bg-green-600",
+    textColor: "text-green-700",
+    badgeColor: "text-green-700 bg-green-100",
   },
 };
 
@@ -186,53 +191,23 @@ export default function IncidentsPage() {
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 px-1 scrollbar-hide snap-x">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            onClick={() => setFilter("all")}
-            className="whitespace-nowrap rounded-full snap-start"
-            size="sm"
-          >
-            Tất cả
-          </Button>
-          {(Object.keys(statusConfig) as Array<keyof typeof statusConfig>).map(
-            (key) => {
-              const config = statusConfig[key];
-              const count = incidents.filter((i) => i.status === key).length;
-              const isActive = filter === key;
-              return (
-                <Button
-                  key={key}
-                  variant="outline"
-                  onClick={() => setFilter(key)}
-                  className={cn(
-                    "whitespace-nowrap rounded-full snap-start border transition-colors",
-                    isActive
-                      ? cn(
-                          config.activeParams,
-                          "border-transparent shadow-sm hover:opacity-90",
-                        )
-                      : cn(
-                          config.color,
-                          "border-transparent bg-white/70 hover:bg-muted",
-                        ),
-                  )}
-                  size="sm"
-                >
-                  {config.label}{" "}
-                  <span
-                    className={cn(
-                      "ml-1",
-                      isActive ? "text-white/80" : "opacity-70",
-                    )}
-                  >
-                    ({count})
-                  </span>
-                </Button>
-              );
+        <StatusFilter
+          filter={filter}
+          onFilterChange={(value) =>
+            setFilter(value as "all" | keyof typeof statusConfig)
+          }
+          config={statusConfig}
+          totalCount={incidents.length}
+          counts={incidents.reduce(
+            (acc, i) => {
+              const status = i.status;
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
             },
+            {} as Record<string, number>,
           )}
-        </div>
+          className="mb-6 flex-wrap"
+        />
 
         <div className="space-y-4">
           {paginatedIncidents.map((incident) => (
@@ -243,7 +218,7 @@ export default function IncidentsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <Badge
                         className={cn(
-                          statusConfig[incident.status]?.color ||
+                          statusConfig[incident.status]?.badgeColor ||
                             "bg-gray-100 text-gray-800",
                           "text-sm px-3 py-1",
                         )}

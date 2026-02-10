@@ -63,6 +63,7 @@ import { AppPagination } from "@/components/app-pagination";
 
 import { ExpandableText } from "@/components/expandable-text";
 import { ReloadButton } from "@/components/reload-button";
+import { StatusFilter } from "@/components/status-filter";
 
 function ActionContent({ content }: { content: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -292,41 +293,23 @@ export default function DirectivesPage() {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">
-        {/* Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 px-4 scrollbar-hide snap-x">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            onClick={() => setFilter("all")}
-            className="whitespace-nowrap rounded-full snap-start"
-            size="sm"
-          >
-            Tất cả
-          </Button>
-          {Object.entries(statusConfig).map(([key, config]) => {
-            const count = directives.filter((d) => d.status === key).length;
-            const isActive = filter === key;
-            return (
-              <Button
-                key={key}
-                variant="outline"
-                onClick={() => setFilter(key as Directive["status"])}
-                className={`whitespace-nowrap rounded-full snap-start border transition-colors ${
-                  isActive
-                    ? `${config.color} text-white hover:opacity-90 border-transparent shadow-sm`
-                    : `${config.textColor} border-current/20 bg-background hover:bg-accent hover:text-accent-foreground`
-                }`}
-                size="sm"
-              >
-                {config.label}{" "}
-                <span
-                  className={`ml-1 ${isActive ? "text-white/80" : "opacity-70"}`}
-                >
-                  ({count})
-                </span>
-              </Button>
-            );
-          })}
-        </div>
+        <StatusFilter
+          filter={filter}
+          onFilterChange={(value) =>
+            setFilter(value as "all" | Directive["status"])
+          }
+          config={statusConfig}
+          totalCount={directives.length}
+          counts={directives.reduce(
+            (acc, d) => {
+              const status = d.status as string;
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          )}
+          className="mb-6"
+        />
 
         {/* Directives List */}
         <div className="space-y-3">
