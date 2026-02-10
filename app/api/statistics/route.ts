@@ -86,6 +86,9 @@ export async function GET() {
         ).length,
         in_progress: directives.filter((d) => d.status === "in_progress")
           .length,
+        unseen_completed: directives.filter(
+          (d) => d.status === "completed" && !d.seen,
+        ).length,
         completed: directives.filter((d) => d.status === "completed").length,
         total: directives.length,
       },
@@ -132,7 +135,10 @@ export async function GET() {
         directed: incidents.filter((i) => i.status === "directed").length,
         in_progress: incidents.filter((i) => i.status === "in_progress").length,
         resolved: incidents.filter((i) => i.status === "resolved").length,
-        total: incidents.length,
+        // Count open incidents OR (resolved AND unseen)
+        total:
+          incidents.filter((i) => i.status === "open").length +
+          incidents.filter((i) => i.status === "resolved" && !i.seen).length,
       },
       plans: {
         active: plans.filter((p) => p.status === "active").length,

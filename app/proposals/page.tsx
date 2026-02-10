@@ -11,11 +11,14 @@ import {
   Loader2,
   FileText,
   Link as LinkIcon,
+  Send,
+  CheckCircle2,
+  XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
@@ -32,30 +35,35 @@ const statusConfig = {
     color: "bg-yellow-600",
     textColor: "text-yellow-700",
     badgeColor: "text-yellow-700 bg-yellow-100",
+    icon: Send,
   },
   approved: {
     label: "Đã duyệt",
     color: "bg-green-600",
     textColor: "text-green-700",
     badgeColor: "text-green-700 bg-green-100",
+    icon: CheckCircle2,
   },
   rejected: {
     label: "Từ chối",
     color: "bg-red-600",
     textColor: "text-red-700",
     badgeColor: "text-red-700 bg-red-100",
+    icon: XCircle,
   },
   directed: {
     label: "Đã chỉ đạo",
     color: "bg-purple-600",
     textColor: "text-purple-700",
     badgeColor: "text-purple-700 bg-purple-100",
+    icon: MessageSquare,
   },
   draft: {
     label: "Nháp",
     color: "bg-gray-600",
     textColor: "text-gray-700",
     badgeColor: "text-gray-700 bg-gray-100",
+    icon: FileText,
   },
 };
 
@@ -206,27 +214,40 @@ export default function ProposalsPage() {
         />
 
         <div className="space-y-4">
-          {paginatedProposals.map((proposal) => (
-            <Card key={proposal.id} className="glass-card p-5">
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex flex-col gap-2 mb-2">
-                    <div className="flex items-center justify-between gap-2">
+          {paginatedProposals.map((proposal) => {
+            const config =
+              statusConfig[proposal.status as keyof typeof statusConfig] ||
+              statusConfig.draft;
+            const StatusIcon = config.icon;
+
+            return (
+              <div
+                key={proposal.id}
+                className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+              >
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                />
+
+                <div className="p-4 pl-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2">
                       <Badge
-                        className={cn(
-                          statusConfig[proposal.status].badgeColor,
-                          "text-sm px-3 py-1",
-                        )}
+                        variant="secondary"
+                        className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
                       >
-                        {statusConfig[proposal.status].label}
+                        <StatusIcon className="w-3 h-3 mr-1" />
+                        {config.label}
                       </Badge>
-                      <span className="text-base text-muted-foreground">
-                        {formatDateTime(proposal.createdAt)}
-                      </span>
                     </div>
-                    <h3 className="text-lg font-semibold">{proposal.title}</h3>
+
+                    <span className="text-base text-muted-foreground">
+                      {formatDateTime(proposal.createdAt)}
+                    </span>
                   </div>
-                  <div className="mb-3">
+
+                  <div className="flex flex-col gap-2 mb-3">
+                    <h3 className="text-lg font-semibold">{proposal.title}</h3>
                     <ExpandableText
                       text={proposal.description}
                       className="text-lg text-muted-foreground"
@@ -365,8 +386,8 @@ export default function ProposalsPage() {
                   )}
                 </div>
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Pagination */}
