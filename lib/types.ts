@@ -8,6 +8,7 @@ export interface Directive {
   assignedTo?: string;
   deadline?: Date;
   actionContent?: string;
+  attachment?: string[];
 }
 
 export interface Task {
@@ -110,6 +111,7 @@ export interface Proposal {
   status: "draft" | "submitted" | "approved" | "rejected" | "directed";
   createdAt: Date;
   updatedAt: Date;
+  attachment?: string[];
 }
 
 export interface Incident {
@@ -121,6 +123,7 @@ export interface Incident {
   createdAt: Date; // Thời gian tạo
   updatedAt: Date; // Thời gian cập nhật
   directionContent?: string; // Chỉ đạo
+  attachment?: string[];
 }
 
 export interface Plan {

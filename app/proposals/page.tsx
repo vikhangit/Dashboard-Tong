@@ -10,6 +10,7 @@ import {
   Mic,
   Loader2,
   FileText,
+  Link as LinkIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,33 +21,41 @@ import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
+import { AttachmentList } from "@/components/attachment-list";
 import { ReloadButton } from "@/components/reload-button";
+import { StatusFilter } from "@/components/status-filter";
+import { CollapsibleSection } from "@/components/collapsible-section";
 
 const statusConfig = {
   submitted: {
     label: "Đã gửi",
-    color: "text-yellow-700 bg-yellow-100",
-    activeParams: "bg-yellow-600 text-white",
+    color: "bg-yellow-600",
+    textColor: "text-yellow-700",
+    badgeColor: "text-yellow-700 bg-yellow-100",
   },
   approved: {
     label: "Đã duyệt",
-    color: "text-green-700 bg-green-100",
-    activeParams: "bg-green-600 text-white",
+    color: "bg-green-600",
+    textColor: "text-green-700",
+    badgeColor: "text-green-700 bg-green-100",
   },
   rejected: {
     label: "Từ chối",
-    color: "text-red-700 bg-red-100",
-    activeParams: "bg-red-600 text-white",
+    color: "bg-red-600",
+    textColor: "text-red-700",
+    badgeColor: "text-red-700 bg-red-100",
   },
   directed: {
     label: "Đã chỉ đạo",
-    color: "text-purple-700 bg-purple-100",
-    activeParams: "bg-purple-600 text-white",
+    color: "bg-purple-600",
+    textColor: "text-purple-700",
+    badgeColor: "text-purple-700 bg-purple-100",
   },
   draft: {
     label: "Nháp",
-    color: "text-gray-700 bg-gray-100",
-    activeParams: "bg-gray-600 text-white",
+    color: "bg-gray-600",
+    textColor: "text-gray-700",
+    badgeColor: "text-gray-700 bg-gray-100",
   },
 };
 
@@ -178,43 +187,23 @@ export default function ProposalsPage() {
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 px-1 scrollbar-hide snap-x">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            onClick={() => setFilter("all")}
-            className="whitespace-nowrap rounded-full snap-start"
-            size="sm"
-          >
-            Tất cả
-          </Button>
-          {(Object.keys(statusConfig) as Array<keyof typeof statusConfig>).map(
-            (key) => {
-              const config = statusConfig[key];
-              const count = proposals.filter((p) => p.status === key).length;
-              const isActive = filter === key;
-              return (
-                <Button
-                  key={key}
-                  variant="outline"
-                  onClick={() => setFilter(key)}
-                  className={`whitespace-nowrap rounded-full snap-start border transition-colors ${
-                    isActive
-                      ? `${config.activeParams} border-transparent shadow-sm hover:opacity-90`
-                      : `${config.color} border-transparent bg-white/70 hover:bg-muted`
-                  }`}
-                  size="sm"
-                >
-                  {config.label}{" "}
-                  <span
-                    className={`ml-1 ${isActive ? "text-white/80" : "opacity-70"}`}
-                  >
-                    ({count})
-                  </span>
-                </Button>
-              );
+        <StatusFilter
+          filter={filter}
+          onFilterChange={(value) =>
+            setFilter(value as "all" | keyof typeof statusConfig)
+          }
+          config={statusConfig}
+          totalCount={proposals.length}
+          counts={proposals.reduce(
+            (acc, p) => {
+              const status = p.status;
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
             },
+            {} as Record<string, number>,
           )}
-        </div>
+          className="mb-6 flex-wrap"
+        />
 
         <div className="space-y-4">
           {paginatedProposals.map((proposal) => (
@@ -225,7 +214,7 @@ export default function ProposalsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <Badge
                         className={cn(
-                          statusConfig[proposal.status].color,
+                          statusConfig[proposal.status].badgeColor,
                           "text-sm px-3 py-1",
                         )}
                       >
@@ -289,6 +278,12 @@ export default function ProposalsPage() {
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {proposal.attachment && proposal.attachment.length > 0 && (
+                    <CollapsibleSection title="Minh chứng" defaultOpen={true}>
+                      <AttachmentList attachments={proposal.attachment} />
+                    </CollapsibleSection>
                   )}
 
                   {/* Approval Actions */}

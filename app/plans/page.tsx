@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ReloadButton } from "@/components/reload-button";
+import { StatusFilter } from "@/components/status-filter";
 
 const statusConfig: Record<
   string,
@@ -54,15 +55,13 @@ const statusConfig: Record<
     icon: XCircle,
     textColor: "text-red-700",
   },
+  draft: {
+    label: "Nháp",
+    color: "bg-gray-500",
+    icon: Clock,
+    textColor: "text-gray-700",
+  },
 };
-
-const statusOptions = [
-  { value: "all", label: "Tất cả" },
-  { value: "active", label: "Đang thực hiện" },
-  { value: "completed", label: "Hoàn thành" },
-  { value: "paused", label: "Tạm dừng" },
-  { value: "cancelled", label: "Hủy" },
-];
 
 export default function PlansPage() {
   const router = useRouter();
@@ -171,34 +170,24 @@ export default function PlansPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x mb-6">
-          {statusOptions.map((option) => {
-            const isActive = statusFilter === option.value;
-            const config =
-              option.value === "all" ? null : statusConfig[option.value];
-
-            return (
-              <button
-                key={option.value}
-                onClick={() => {
-                  setStatusFilter(option.value);
-                  setPagination((prev) => ({ ...prev, page: 1 }));
-                }}
-                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 snap-start border ${
-                  isActive
-                    ? config
-                      ? `${config.color} text-white border-transparent shadow-md`
-                      : "bg-primary text-primary-foreground border-primary shadow-md"
-                    : config
-                      ? `${config.textColor} border-current/20 bg-white/90 hover:bg-accent hover:text-accent-foreground`
-                      : "bg-background border-border text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <StatusFilter
+          filter={statusFilter}
+          onFilterChange={(value) => {
+            setStatusFilter(value);
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+          config={statusConfig}
+          totalCount={allPlans.length}
+          counts={allPlans.reduce(
+            (acc, plan) => {
+              const status = plan.status;
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          )}
+          className="mb-6 flex-wrap"
+        />
 
         {/* Plans List */}
         <div className="space-y-4">

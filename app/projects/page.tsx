@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { AppPagination } from "@/components/app-pagination";
+import { StatusFilter } from "@/components/status-filter";
 import {
   Select,
   SelectContent,
@@ -38,12 +39,6 @@ const statusConfig: Record<
   string,
   { label: string; color: string; icon: any; textColor: string }
 > = {
-  planning: {
-    label: "Kế hoạch",
-    color: "bg-gray-500",
-    icon: Clock,
-    textColor: "text-gray-700",
-  },
   active: {
     label: "Đang thực hiện",
     color: "bg-blue-500",
@@ -68,35 +63,33 @@ const statusConfig: Record<
     icon: AlertCircle,
     textColor: "text-red-700",
   },
+  planning: {
+    label: "Kế hoạch",
+    color: "bg-gray-500",
+    icon: Clock,
+    textColor: "text-gray-700",
+  },
 };
 
-const statusOptions = [
-  { value: "all", label: "Tất cả" },
-  { value: "planning", label: "Kế hoạch" },
-  { value: "active", label: "Đang thực hiện" },
-  { value: "completed", label: "Hoàn thành" },
-  { value: "on_hold", label: "Tạm dừng" },
-  { value: "cancelled", label: "Đã hủy" },
-];
-
-const getStatusConfig = (status: string, projectStatus?: { name: string }) => {
-  // If project_status exists, map its name to a standard status key
-  let displayStatus = status;
-
-  if (projectStatus?.name) {
-    const statusName = projectStatus.name.toLowerCase();
-    if (statusName.includes("lập kế hoạch")) displayStatus = "planning";
-    else if (statusName.includes("đang thực hiện")) displayStatus = "active";
-    else if (statusName.includes("hoàn thành")) displayStatus = "completed";
-    else if (statusName.includes("tạm dừng")) displayStatus = "on_hold";
-    else if (statusName.includes("hủy")) displayStatus = "cancelled";
+const getProjectStatusKey = (project: Project) => {
+  if (project.project_status?.name) {
+    const statusName = project.project_status.name.toLowerCase();
+    if (statusName.includes("đang thực hiện")) return "active";
+    else if (statusName.includes("hoàn thành")) return "completed";
+    else if (statusName.includes("tạm dừng")) return "on_hold";
+    else if (statusName.includes("hủy")) return "cancelled";
+    else if (statusName.includes("lập kế hoạch")) return "planning";
   }
+  return "planning";
+};
 
+const getStatusConfig = (project: Project) => {
+  const statusKey = getProjectStatusKey(project);
   return (
-    statusConfig[displayStatus] || {
-      label: projectStatus?.name || displayStatus,
+    statusConfig[statusKey] || {
+      label: project.project_status?.name || "Kế hoạch",
       color: "bg-gray-400",
-      icon: AlertCircle,
+      icon: Clock,
       textColor: "text-gray-600",
     }
   );
@@ -137,26 +130,7 @@ export default function ProjectsPage() {
     // Filter by status
     if (statusFilter !== "all") {
       result = result.filter((project) => {
-        // Map project status to our filter keys
-        let projectStatusKey = "planning"; // Default if no status
-
-        if (project.project_status?.name) {
-          const statusName = project.project_status.name.toLowerCase();
-          if (statusName.includes("đang thực hiện"))
-            projectStatusKey = "active";
-          else if (statusName.includes("hoàn thành"))
-            projectStatusKey = "completed";
-          else if (statusName.includes("tạm dừng"))
-            projectStatusKey = "on_hold";
-          else if (statusName.includes("hủy")) projectStatusKey = "cancelled";
-          else if (statusName.includes("lập kế hoạch"))
-            projectStatusKey = "planning";
-        } else {
-          // Fallback: If project_status is null/undefined, treat as planning
-          projectStatusKey = "planning";
-        }
-
-        return projectStatusKey === statusFilter;
+        return getProjectStatusKey(project) === statusFilter;
       });
     }
 
@@ -215,53 +189,6 @@ export default function ProjectsPage() {
   const fetchProjects = async (showLoading: boolean = true) => {
     try {
       if (showLoading) setLoading(true);
-      // However, the original code sets loading=true.
-      // For refresh, we might not want to set global loading=true to avoid full page spinner if we just want button spinner.
-      // But let's stick to the pattern.
-      // Actually, standard pattern:
-      // loading is for initial page load skeleton/spinner.
-      // isRefreshing is for button spinner.
-      // We should probably NOT set loading(true) if we are refreshing, or handle it carefully.
-      // In the directives page implementation, handleReload calls setRefreshing(true) then fetchDirectives.
-      // fetchDirectives sets loading(true).
-      // If fetchDirectives sets loading(true), the whole page might show loading state.
-      // Let's check directives page again.
-      // In directives page:
-      // const handleReload = async () => { setIsRefreshing(true); await fetchDirectives(); setIsRefreshing(false); };
-      // fetchDirectives sets loading(false) at the end, but DOES NOT set loading(true) at start?
-      // Wait, line 129 in directives page:
-      /*
-      const fetchDirectives = async () => {
-        try {
-          const response = await fetch("/api/directives");
-          ...
-        } ... finally { setLoading(false); }
-      };
-      */
-      // It DOES NOT set setLoading(true) at the start of fetchDirectives in directives page.
-      // BUT in Projects page, fetchProjects DOES set setLoading(true).
-      // I should modify fetchProjects to optionally skip setting loading, or just remove setLoading(true) from it if it's called from reload?
-      // Or just duplicate the fetch logic in handleReload?
-      // Or simply let it be. If setLoading(true) runs, the page content might disappear and show a spinner.
-      // The user wants a "reload button", usually meaning "refresh data".
-      // If the page content disappears, it's not ideal for a "background refresh" but acceptable for "reload".
-      // However, to match the directives page behavior (where it likely doesn't flash the full page loader),
-      // I should ideally check if I can modify fetchProjects or create a specific refresh function.
-      // In directives page, `fetchDirectives` did NOT have `setLoading(true)` at start. It relied on initial state `loading=true`.
-      // In Projects page, `fetchProjects` HAS `setLoading(true)`.
-      // I will REMOVE `setLoading(true)` from `fetchProjects` and ensure `loading` is initialized to `true`,
-      // OR I will accept that the page might show a loader.
-      // Actually, removing `setLoading(true)` is risky if `fetchProjects` is called elsewhere.
-      // It is called in `useEffect` on mount.
-      // If I remove `setLoading(true)` from `fetchProjects`, `useEffect` is fine because initial state is `true`.
-      // But if I ever call `fetchProjects` again (e.g. after add/delete), it won't show loader.
-      // If I use `handleReload`, I want the BUTTON to spin, but maybe not the whole page to go blank.
-      // The users pattern in Directives page was: Button spins.
-      // If I let `fetchProjects` set `loading(true)`, the `if (loading)` block at line 311 will trigger and show "Đang tải dữ liệu...".
-      // This might be acceptable.
-      // But to be slick, I'll pass a parameter to `fetchProjects` or just copy the axios call.
-      // Since I can't easily change the function signature without potentially breaking other things (though here it's local),
-      // I'll just copy the axios call in `handleReload` which is safer and cleaner for "refresh without full page loader".
 
       const response = await axios.get<ProjectApiResponse>(
         "https://api.apecglobal.net/api/v1/projects/outside",
@@ -304,34 +231,24 @@ export default function ProjectsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x mb-3">
-          {statusOptions.map((option) => {
-            const isActive = statusFilter === option.value;
-            const config =
-              option.value === "all" ? null : statusConfig[option.value];
-
-            return (
-              <button
-                key={option.value}
-                onClick={() => {
-                  setStatusFilter(option.value);
-                  setPagination((prev) => ({ ...prev, page: 1 }));
-                }}
-                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 snap-start border ${
-                  isActive
-                    ? config
-                      ? `${config.color} text-white border-transparent shadow-md`
-                      : "bg-primary text-primary-foreground border-primary shadow-md"
-                    : config
-                      ? `${config.textColor} border-current/20 bg-white/90 hover:bg-accent hover:text-accent-foreground`
-                      : "bg-background border-border text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <StatusFilter
+          filter={statusFilter}
+          onFilterChange={(value) => {
+            setStatusFilter(value);
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+          config={statusConfig}
+          totalCount={allProjects.length}
+          counts={allProjects.reduce(
+            (acc, project) => {
+              const status = getProjectStatusKey(project);
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          )}
+          className="mb-3 flex-wrap"
+        />
 
         {/* Department Filter */}
         <div className="mb-6">
@@ -370,10 +287,7 @@ export default function ProjectsPage() {
             </Card>
           ) : (
             projects.map((project) => {
-              const config = getStatusConfig(
-                project.status,
-                project.project_status,
-              );
+              const config = getStatusConfig(project);
               const StatusIcon = config.icon || AlertCircle;
 
               return (

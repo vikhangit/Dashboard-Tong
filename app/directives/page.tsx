@@ -14,8 +14,7 @@ import {
   Mic,
   Loader2,
   ClipboardList,
-  ChevronDown,
-  ChevronUp,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -63,40 +62,9 @@ import { AppPagination } from "@/components/app-pagination";
 
 import { ExpandableText } from "@/components/expandable-text";
 import { ReloadButton } from "@/components/reload-button";
-
-function ActionContent({ content }: { content: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="mb-3 text-sm border border-border/100 rounded-lg overflow-hidden">
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        className="p-4 font-medium bg-slate-100 text-blue-700 font-bold uppercase tracking-wider flex items-center justify-between cursor-pointer hover:bg-slate-200 transition-colors"
-      >
-        <span>Chi tiết xử lý</span>
-        {isOpen ? (
-          <ChevronUp className="size-6" />
-        ) : (
-          <ChevronDown className="size-6" />
-        )}
-      </div>
-
-      {isOpen && (
-        <div
-          className="p-4 bg-white border-t animate-in slide-in-from-top-2 duration-200 cursor-pointer"
-          onClick={() => setIsOpen(false)}
-        >
-          <p className="text-foreground/90 whitespace-pre-wrap text-lg">
-            {content}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
+import { StatusFilter } from "@/components/status-filter";
+import { CollapsibleSection } from "@/components/collapsible-section";
+import { AttachmentList } from "@/components/attachment-list";
 
 export default function DirectivesPage() {
   const [directives, setDirectives] = useState<Directive[]>([]);
@@ -292,41 +260,23 @@ export default function DirectivesPage() {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">
-        {/* Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-4 px-4 scrollbar-hide snap-x">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            onClick={() => setFilter("all")}
-            className="whitespace-nowrap rounded-full snap-start"
-            size="sm"
-          >
-            Tất cả
-          </Button>
-          {Object.entries(statusConfig).map(([key, config]) => {
-            const count = directives.filter((d) => d.status === key).length;
-            const isActive = filter === key;
-            return (
-              <Button
-                key={key}
-                variant="outline"
-                onClick={() => setFilter(key as Directive["status"])}
-                className={`whitespace-nowrap rounded-full snap-start border transition-colors ${
-                  isActive
-                    ? `${config.color} text-white hover:opacity-90 border-transparent shadow-sm`
-                    : `${config.textColor} border-current/20 bg-background hover:bg-accent hover:text-accent-foreground`
-                }`}
-                size="sm"
-              >
-                {config.label}{" "}
-                <span
-                  className={`ml-1 ${isActive ? "text-white/80" : "opacity-70"}`}
-                >
-                  ({count})
-                </span>
-              </Button>
-            );
-          })}
-        </div>
+        <StatusFilter
+          filter={filter}
+          onFilterChange={(value) =>
+            setFilter(value as "all" | Directive["status"])
+          }
+          config={statusConfig}
+          totalCount={directives.length}
+          counts={directives.reduce(
+            (acc, d) => {
+              const status = d.status as string;
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          )}
+          className="mb-6"
+        />
 
         {/* Directives List */}
         <div className="space-y-3">
@@ -376,8 +326,22 @@ export default function DirectivesPage() {
                     </div>
 
                     {directive.actionContent && (
-                      <ActionContent content={directive.actionContent} />
+                      <CollapsibleSection title="Chi tiết xử lý">
+                        <p className="text-foreground/90 whitespace-pre-wrap text-lg">
+                          {directive.actionContent}
+                        </p>
+                      </CollapsibleSection>
                     )}
+
+                    {directive.attachment &&
+                      directive.attachment.length > 0 && (
+                        <CollapsibleSection
+                          title="Minh chứng"
+                          defaultOpen={true}
+                        >
+                          <AttachmentList attachments={directive.attachment} />
+                        </CollapsibleSection>
+                      )}
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-400">
                       {directive.assignedTo && (
