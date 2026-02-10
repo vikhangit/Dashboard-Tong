@@ -60,7 +60,9 @@ const statusConfig = {
 };
 
 import { AppPagination } from "@/components/app-pagination";
+
 import { ExpandableText } from "@/components/expandable-text";
+import { ReloadButton } from "@/components/reload-button";
 
 function ActionContent({ content }: { content: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -214,9 +216,10 @@ export default function DirectivesPage() {
     <div className="min-h-screen bg-background/50">
       {/* Header */}
       <PageHeader
-        title="Chỉ đạo công việc"
+        title="Chỉ đạo"
         icon={<ClipboardList className="size-6 text-purple-600" />}
       >
+        <ReloadButton onReload={fetchDirectives} className="mr-2" />
         <Button
           size="sm"
           onClick={isRecording ? stopRecording : startRecording}

@@ -20,6 +20,7 @@ import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
+import { ReloadButton } from "@/components/reload-button";
 
 const statusConfig = {
   submitted: {
@@ -171,7 +172,9 @@ export default function ProposalsPage() {
       <PageHeader
         title="Đề xuất"
         icon={<Lightbulb className="size-6 text-yellow-600" />}
-      />
+      >
+        <ReloadButton onReload={fetchProposals} />
+      </PageHeader>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}

@@ -127,7 +127,7 @@ export default function ChatPage() {
   return (
     <div className="h-screen overflow-hidden gradient-holographic flex flex-col">
       {/* Header */}
-      <header className="glass-card border-b p-4 shrink-0">
+      <header className="glass-card border-b px-4 py-1.5 shrink-0">
         <div className="container mx-auto flex items-center gap-3">
           <Link href="/">
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -142,7 +142,7 @@ export default function ChatPage() {
               <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">
+              <h1 className="text-base font-semibold text-foreground">
                 Trợ lý AI
               </h1>
               <p className="text-xs text-muted-foreground">Đang hoạt động</p>
@@ -232,7 +232,7 @@ export default function ChatPage() {
           </div> */}
 
           {/* Input Area */}
-          <div className="border-t p-4">
+          <div className="border-t px-4 py-2">
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleMicClick}

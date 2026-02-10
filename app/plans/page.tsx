@@ -24,6 +24,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
+import { ReloadButton } from "@/components/reload-button";
 
 const statusConfig: Record<
   string,
@@ -134,9 +135,9 @@ export default function PlansPage() {
     pagination.limit,
   ]);
 
-  const fetchPlans = async () => {
+  const fetchPlans = async (showLoading: boolean = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await axios.get("/api/plans");
       if (response.data && response.data.success) {
         setAllPlans(response.data.data);
@@ -153,7 +154,9 @@ export default function PlansPage() {
       <PageHeader
         title="Kế hoạch"
         icon={<Calendar className="size-6 text-blue-600" />}
-      />
+      >
+        <ReloadButton onReload={() => fetchPlans(false)} />
+      </PageHeader>
 
       <div className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Search */}

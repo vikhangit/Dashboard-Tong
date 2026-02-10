@@ -19,6 +19,7 @@ import { ExpandableText } from "@/components/expandable-text";
 import { Incident } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
+import { ReloadButton } from "@/components/reload-button";
 
 const statusConfig = {
   open: {
@@ -134,27 +135,27 @@ export default function IncidentsPage() {
     }
   };
 
-  useEffect(() => {
-    async function fetchIncidents() {
-      try {
-        const response = await fetch("/api/incidents");
-        if (!response.ok) throw new Error("Failed to fetch incidents");
-        const data = await response.json();
-        // Convert date strings back to Date objects
-        const parsedData = data.map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-          updatedAt: new Date(item.updatedAt),
-        }));
-        setIncidents(parsedData);
-      } catch (err) {
-        console.error("Error loading incidents:", err);
-        setError("Không thể tải dữ liệu sự cố");
-      } finally {
-        setLoading(false);
-      }
+  async function fetchIncidents() {
+    try {
+      const response = await fetch("/api/incidents");
+      if (!response.ok) throw new Error("Failed to fetch incidents");
+      const data = await response.json();
+      // Convert date strings back to Date objects
+      const parsedData = data.map((item: any) => ({
+        ...item,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
+      setIncidents(parsedData);
+    } catch (err) {
+      console.error("Error loading incidents:", err);
+      setError("Không thể tải dữ liệu sự cố");
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     fetchIncidents();
   }, []);
 
@@ -179,7 +180,9 @@ export default function IncidentsPage() {
       <PageHeader
         title="Sự cố"
         icon={<AlertTriangle className="size-6 text-red-600" />}
-      />
+      >
+        <ReloadButton onReload={fetchIncidents} />
+      </PageHeader>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Filters */}
