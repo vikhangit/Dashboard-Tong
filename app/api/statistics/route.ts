@@ -3,7 +3,7 @@ import { sheetsService } from "@/lib/sheets-service";
 import axios from "axios";
 import { Statistics } from "@/lib/types";
 
-export const revalidate = 300; // Cache for 5 minutes
+export const revalidate = 60; // Cache for 1 minute for faster notifications
 export const dynamic = "force-static";
 
 const fetchWithTimeout = async (url: string, timeout = 5000) => {
@@ -136,9 +136,7 @@ export async function GET() {
         in_progress: incidents.filter((i) => i.status === "in_progress").length,
         resolved: incidents.filter((i) => i.status === "resolved").length,
         // Count open incidents OR (resolved AND unseen)
-        total:
-          incidents.filter((i) => i.status === "open").length +
-          incidents.filter((i) => i.status === "resolved" && !i.seen).length,
+        total: incidents.filter((i) => i.status === "open").length,
       },
       plans: {
         active: plans.filter((p) => p.status === "active").length,

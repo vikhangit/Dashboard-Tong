@@ -23,7 +23,6 @@ import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
 import { CollapsibleSection } from "@/components/collapsible-section";
 import { AttachmentList } from "@/components/attachment-list";
-import { MarkAsReadButton } from "@/components/mark-as-read-button";
 
 const statusConfig = {
   open: {
@@ -147,12 +146,6 @@ export default function IncidentsPage() {
     }
   };
 
-  const handleMarkAsReadSuccess = (id: string) => {
-    setIncidents((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, seen: true } : i)),
-    );
-  };
-
   async function fetchIncidents() {
     try {
       const response = await fetch("/api/incidents");
@@ -255,15 +248,7 @@ export default function IncidentsPage() {
                         {formatShortDateTime(incident.createdAt)}
                       </span>
                       <div className="flex items-center gap-2">
-                        {incident.status === "resolved" && !incident.seen && (
-                          <MarkAsReadButton
-                            id={incident.id}
-                            endpoint="/api/incidents"
-                            onSuccess={() =>
-                              handleMarkAsReadSuccess(incident.id)
-                            }
-                          />
-                        )}
+                        {/* MarkAsReadButton removed */}
                       </div>
                     </div>
                   </div>
