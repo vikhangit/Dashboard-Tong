@@ -193,7 +193,7 @@ export default function HomePage() {
               icon={ClipboardList}
               label="Chỉ đạo"
               iconColor="text-purple-600"
-              count={statistics.directives.pending}
+              count={statistics.directives.unseen_completed}
             />
 
             <DashboardShortcut
@@ -201,7 +201,7 @@ export default function HomePage() {
               icon={Briefcase}
               label="Công việc"
               iconColor="text-blue-600"
-              count={statistics.tasks.in_progress}
+              // count={statistics.tasks.in_progress}
             />
 
             <DashboardShortcut
@@ -209,7 +209,7 @@ export default function HomePage() {
               icon={FolderKanban}
               label="Dự án"
               iconColor="text-green-600"
-              count={statistics.projects.active}
+              // count={statistics.projects.active}
             />
 
             {/* Row 2 */}
@@ -226,7 +226,7 @@ export default function HomePage() {
               icon={AlertTriangle}
               label="Sự cố"
               iconColor="text-red-600"
-              count={statistics.incidents.open}
+              count={statistics.incidents.total}
             />
 
             <DashboardShortcut
@@ -234,7 +234,7 @@ export default function HomePage() {
               icon={Calendar}
               label="Kế hoạch"
               iconColor="text-teal-600"
-              count={statistics.plans.active}
+              // count={statistics.plans.active}
             />
 
             <DashboardShortcut

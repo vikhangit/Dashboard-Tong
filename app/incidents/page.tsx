@@ -9,15 +9,15 @@ import {
   MessageSquare,
   Mic,
   Loader2,
+  CheckCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/expandable-text";
 import { Incident } from "@/lib/types";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, formatShortDateTime } from "@/lib/utils";
 import { AppPagination } from "@/components/app-pagination";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
@@ -30,24 +30,28 @@ const statusConfig = {
     color: "bg-red-600",
     textColor: "text-red-700",
     badgeColor: "text-red-700 bg-red-100",
+    icon: AlertTriangle,
   },
   directed: {
     label: "Đã chỉ đạo",
     color: "bg-purple-600",
     textColor: "text-purple-700",
     badgeColor: "text-purple-700 bg-purple-100",
+    icon: MessageSquare,
   },
   in_progress: {
     label: "Đang xử lý",
     color: "bg-blue-600",
     textColor: "text-blue-700",
     badgeColor: "text-blue-700 bg-blue-100",
+    icon: Loader2,
   },
   resolved: {
     label: "Đã giải quyết",
     color: "bg-green-600",
     textColor: "text-green-700",
     badgeColor: "text-green-700 bg-green-100",
+    icon: CheckCheck,
   },
 };
 
@@ -212,32 +216,45 @@ export default function IncidentsPage() {
         />
 
         <div className="space-y-4">
-          {paginatedIncidents.map((incident) => (
-            <Card key={incident.id} className="glass-card p-5">
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex flex-col gap-2 mb-2">
-                    <div className="flex items-center justify-between gap-2">
+          {paginatedIncidents.map((incident) => {
+            const config =
+              statusConfig[incident.status as keyof typeof statusConfig] ||
+              statusConfig.open;
+            const StatusIcon = config.icon;
+
+            return (
+              <div
+                key={incident.id}
+                className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+              >
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                />
+
+                <div className="p-4 pl-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2">
                       <Badge
-                        className={cn(
-                          statusConfig[incident.status]?.badgeColor ||
-                            "bg-gray-100 text-gray-800",
-                          "text-sm px-3 py-1",
-                        )}
+                        variant="secondary"
+                        className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
                       >
-                        {statusConfig[incident.status]?.label ||
-                          incident.status}
+                        <StatusIcon className="w-3 h-3 mr-1" />
+                        {config.label}
                       </Badge>
-                      <div className="flex items-center gap-3">
-                        <span className="text-base text-muted-foreground">
-                          {formatDateTime(incident.createdAt)}
-                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-base text-muted-foreground flex items-center gap-1">
+                        {formatShortDateTime(incident.createdAt)}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {/* MarkAsReadButton removed */}
                       </div>
                     </div>
-                    <h3 className="text-lg font-semibold">{incident.title}</h3>
                   </div>
 
-                  <div className="mb-3">
+                  <div className="flex flex-col gap-2 mb-3">
+                    <h3 className="text-lg font-semibold">{incident.title}</h3>
                     <ExpandableText
                       text={incident.description}
                       className="text-lg text-muted-foreground"
@@ -296,7 +313,7 @@ export default function IncidentsPage() {
                     </CollapsibleSection>
                   )}
 
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-100">
                     <span
                       className={cn(
                         "text-sm font-semibold px-2 py-0.5 rounded-full",
@@ -371,8 +388,8 @@ export default function IncidentsPage() {
                   </div>
                 </div>
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Pagination */}

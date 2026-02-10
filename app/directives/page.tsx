@@ -15,10 +15,27 @@ import {
   Loader2,
   ClipboardList,
   Link as LinkIcon,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/expandable-text";
+import { Directive } from "@/lib/types";
+import {
+  cn,
+  formatDate,
+  formatShortDateTime,
+  formatFullDateTime,
+} from "@/lib/utils";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
+
+import { AppPagination } from "@/components/app-pagination";
+import { ReloadButton } from "@/components/reload-button";
+import { StatusFilter } from "@/components/status-filter";
+import { CollapsibleSection } from "@/components/collapsible-section";
+import { AttachmentList } from "@/components/attachment-list";
+import { MarkAsReadButton } from "@/components/mark-as-read-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -29,42 +46,27 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Directive } from "@/lib/types";
-import {
-  formatShortDateTime,
-  formatDate,
-  formatFullDateTime,
-} from "@/lib/utils";
-import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 
 const statusConfig = {
-  pending: {
-    label: "Đã chỉ đạo",
-    color: "bg-yellow-500",
-    textColor: "text-yellow-700",
-    icon: FileText,
-  },
-  in_progress: {
-    label: "Đã tiếp nhận",
-    color: "bg-blue-600",
-    textColor: "text-blue-700",
-    icon: Clock,
-  },
   completed: {
     label: "Đã hoàn thành",
     color: "bg-green-600",
     textColor: "text-green-700",
     icon: CheckCircle2,
   },
+  in_progress: {
+    label: "Đang thực hiện",
+    color: "bg-blue-600",
+    textColor: "text-blue-700",
+    icon: Loader2,
+  },
+  pending: {
+    label: "Chỉ đạo",
+    color: "bg-yellow-500",
+    textColor: "text-orange-600",
+    icon: FileText,
+  },
 };
-
-import { AppPagination } from "@/components/app-pagination";
-
-import { ExpandableText } from "@/components/expandable-text";
-import { ReloadButton } from "@/components/reload-button";
-import { StatusFilter } from "@/components/status-filter";
-import { CollapsibleSection } from "@/components/collapsible-section";
-import { AttachmentList } from "@/components/attachment-list";
 
 export default function DirectivesPage() {
   const [directives, setDirectives] = useState<Directive[]>([]);
@@ -75,6 +77,7 @@ export default function DirectivesPage() {
     limit: 10,
     total: 0,
   });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDirective, setNewDirective] = useState({
     content: "",
@@ -85,35 +88,18 @@ export default function DirectivesPage() {
       onTranscriptionComplete: (text) => {
         setNewDirective((prev) => ({
           ...prev,
-          content: prev.content ? `${prev.content} ${text}` : text,
+          content: prev.content ? prev.content + " " + text : text,
         }));
         setIsDialogOpen(true);
       },
       onError: (err) => console.error("Recording error:", err),
     });
 
-  useEffect(() => {
-    fetchDirectives();
-  }, []);
-
-  const fetchDirectives = async () => {
-    try {
-      const response = await fetch("/api/directives");
-      const data = await response.json();
-      setDirectives(data);
-    } catch (error) {
-      console.error("[v0] Error fetching directives:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const filteredDirectives =
     filter === "all"
       ? directives
       : directives.filter((d) => d.status === filter);
 
-  // Pagination logic
   const paginatedDirectives = filteredDirectives.slice(
     (pagination.page - 1) * pagination.limit,
     pagination.page * pagination.limit,
@@ -127,49 +113,76 @@ export default function DirectivesPage() {
     }));
   }, [filter, directives.length]);
 
+  async function fetchDirectives() {
+    try {
+      const response = await fetch("/api/directives");
+      const data = await response.json();
+      const parsedData = data.map((item: any) => ({
+        ...item,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
+      setDirectives(parsedData);
+    } catch (error) {
+      console.error("[v0] Error fetching directives:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchDirectives();
+  }, []);
+
   const handleAddDirective = async () => {
     if (!newDirective.content.trim()) return;
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/directives", {
+      const res = await fetch("/api/directives", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: newDirective.content,
-          status: "pending",
-        }),
+        body: JSON.stringify(newDirective),
       });
 
-      if (response.ok) {
-        await fetchDirectives();
-        setNewDirective({ content: "" });
+      if (res.ok) {
         setIsDialogOpen(false);
+        setNewDirective({ content: "" });
+        fetchDirectives();
       }
     } catch (error) {
-      console.error("[v0] Error adding directive:", error);
+      console.error("Error adding directive:", error);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleUpdateStatus = async (
-    id: string,
-    status: Directive["status"],
-  ) => {
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      const response = await fetch("/api/directives", {
+      const res = await fetch("/api/directives", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({
+          id,
+          status: newStatus,
+        }),
       });
 
-      if (response.ok) {
+      if (res.ok) {
         await fetchDirectives();
       }
     } catch (error) {
       console.error("[v0] Error updating directive:", error);
     }
+  };
+
+  const handleMarkAsReadSuccess = (id: string) => {
+    // Optimistic update
+    setDirectives((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, seen: true } : d)),
+    );
+    // Then fetch to ensure data consistency
+    fetchDirectives();
   };
 
   if (loading) {
@@ -313,9 +326,22 @@ export default function DirectivesPage() {
                           {config.label}
                         </Badge>
                       </div>
-                      <span className="text-base text-muted-foreground flex items-center gap-1">
-                        {formatShortDateTime(directive.createdAt)}
-                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-base text-muted-foreground flex items-center gap-1">
+                          {formatShortDateTime(directive.createdAt)}
+                        </span>
+                        {directive.status === "completed" &&
+                          !directive.seen && (
+                            <MarkAsReadButton
+                              id={directive.id}
+                              endpoint="/api/directives"
+                              onSuccess={() =>
+                                handleMarkAsReadSuccess(directive.id)
+                              }
+                            />
+                          )}
+                      </div>
                     </div>
 
                     <div className="mb-3">

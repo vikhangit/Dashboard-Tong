@@ -38,7 +38,7 @@ class SheetsService {
       clientEmail: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
       privateKey: process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       ranges: {
-        directives: "'Chỉ đạo'!A2:H",
+        directives: "'Chỉ đạo'!A2:I",
         proposals: "'Đề xuất'!A2:G",
         incidents: "'Sự cố'!A2:H",
         tasks: "Tasks!A2:E", // Default
@@ -281,7 +281,7 @@ class SheetsService {
     const range = this.config.ranges.directives || "'Chỉ đạo'!A2:H";
     const rows = await this.readRange(range);
 
-    // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
+    // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý | Attachment | Seen
     const directives = rows.map((row, index) => ({
       id: `row-${index + 2}`, // Generate a temporary ID based on row index (offset for header)
       status: this.mapStatusToEn(row[0] as string),
@@ -297,6 +297,7 @@ class SheetsService {
             .map((link) => link.trim())
             .filter((link) => link.length > 0)
         : [],
+      seen: (row[8] as string)?.toLowerCase() === "true",
     }));
 
     // Sort by createdAt desc
@@ -306,7 +307,7 @@ class SheetsService {
   }
 
   async syncDirectivesToSheet(directives: any[]): Promise<void> {
-    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:H";
+    const range = this.config.ranges.directives || "'Chỉ đạo'!A2:I";
 
     // Columns: Trạng thái | Thời gian chỉ đạo | Phân Loại | Nội dung chỉ đạo | Người tiếp nhận | Dự kiến hoàn thành | Nội dung xử lý
     const values = directives.map((d) => {
@@ -323,10 +324,43 @@ class SheetsService {
         d.deadline ? this.toVietnamDateString(d.deadline, true) : "",
         d.actionContent || "",
         d.attachment ? d.attachment.join(", ") : "",
+        d.seen ? "TRUE" : "FALSE",
       ];
     });
 
     await this.appendToSheet(range, values);
+  }
+
+  async updateDirective(directive: any & { id: string }): Promise<void> {
+    // ID format is "row-N"
+    const rowIndex = parseInt(directive.id.replace("row-", ""));
+    if (isNaN(rowIndex)) {
+      throw new Error(`Invalid directive ID: ${directive.id}`);
+    }
+
+    const range = `'Chỉ đạo'!A${rowIndex}:I${rowIndex}`;
+
+    const values = [
+      [
+        directive.status === "completed"
+          ? "Đã hoàn thành"
+          : directive.status === "in_progress"
+            ? "Đã tiếp nhận"
+            : "Đã chỉ đạo",
+        this.toVietnamDateString(directive.createdAt, true),
+        directive.category || "Chung",
+        directive.content || "",
+        directive.assignedTo || "",
+        directive.deadline
+          ? this.toVietnamDateString(directive.deadline, true)
+          : "",
+        directive.actionContent || "",
+        directive.attachment ? directive.attachment.join(", ") : "",
+        directive.seen ? "TRUE" : "FALSE",
+      ],
+    ];
+
+    await this.updateRow(range, values);
   }
 
   async syncTasksToSheet(tasks: any[]): Promise<void> {
@@ -384,10 +418,10 @@ class SheetsService {
   }
 
   async getIncidents(): Promise<any[]> {
-    const range = this.config.ranges.incidents || "'Sự cố'!A2:H";
+    const range = this.config.ranges.incidents || "'Sự cố'!A2:I";
     const rows = await this.readRange(range);
 
-    // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Sự cố | Mức độ | Chi tiết | Chỉ đạo
+    // Columns: Trạng thái | Thời gian tạo | Thời gian cập nhật | Sự cố | Mức độ | Chi tiết | Chỉ đạo | Attachment | Seen
     const incidents = rows.map((row, index) => ({
       id: `row-${index + 2}`,
       status: this.mapIncidentStatus(row[0] as string),
@@ -403,6 +437,7 @@ class SheetsService {
             .map((link) => link.trim())
             .filter((link) => link.length > 0)
         : [],
+      seen: (row[8] as string)?.toLowerCase() === "true",
     }));
 
     return incidents.sort(
@@ -512,7 +547,7 @@ class SheetsService {
       throw new Error(`Invalid incident ID: ${incident.id}`);
     }
 
-    const range = `'Sự cố'!A${rowIndex}:H${rowIndex}`;
+    const range = `'Sự cố'!A${rowIndex}:I${rowIndex}`;
 
     // Map fields back to Vietnamese
     let statusLabel = "Mới";
@@ -535,6 +570,7 @@ class SheetsService {
         incident.description,
         incident.directionContent || "",
         incident.attachment ? incident.attachment.join(", ") : "",
+        incident.seen ? "TRUE" : "FALSE",
       ],
     ];
 

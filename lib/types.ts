@@ -9,6 +9,7 @@ export interface Directive {
   deadline?: Date;
   actionContent?: string;
   attachment?: string[];
+  seen?: boolean;
 }
 
 export interface Task {
@@ -124,6 +125,7 @@ export interface Incident {
   updatedAt: Date; // Thời gian cập nhật
   directionContent?: string; // Chỉ đạo
   attachment?: string[];
+  seen?: boolean;
 }
 
 export interface Plan {
@@ -142,6 +144,7 @@ export interface Statistics {
     pending: number;
     in_progress: number;
     completed: number;
+    unseen_completed: number;
     total: number;
   };
   tasks: {

@@ -309,9 +309,10 @@ export default function ProjectsPage() {
                         <StatusIcon className="w-3 h-3 mr-1" />
                         {config.label}
                       </Badge>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        # {project.id}
+                      <span className="text-xs text-blue-500 font-medium">
+                        Xem chi tiết
                       </span>
+
                     </div>
 
                     <h3 className="text-lg font-medium text-foreground leading-snug mb-2 line-clamp-2">
