@@ -17,12 +17,18 @@ export const sendWebhook = async (payload: WebhookPayload) => {
   }
 
   try {
-    // Fire-and-forget, simple fetch
-    fetch(webhookUrl, {
+    // Await the fetch call to ensure it completes before the function returns
+    const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).catch((err) => console.error("[Webhook] Request failed", err));
+    });
+
+    if (!response.ok) {
+      console.error(
+        `[Webhook] Request failed with status ${response.status}: ${response.statusText}`,
+      );
+    }
   } catch (error) {
     console.error("[Webhook] Error sending webhook", error);
   }
