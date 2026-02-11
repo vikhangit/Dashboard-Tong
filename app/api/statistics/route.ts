@@ -3,7 +3,7 @@ import { sheetsService } from "@/lib/sheets-service";
 import axios from "axios";
 import { Statistics } from "@/lib/types";
 
-export const revalidate = 60; // Cache for 1 minute for faster notifications
+export const revalidate = 30;
 export const dynamic = "force-static";
 
 const fetchWithTimeout = async (url: string, timeout = 5000) => {

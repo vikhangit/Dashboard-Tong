@@ -100,6 +100,7 @@ export default function ProjectsPage() {
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [projects, setProjects] = useState<Project[]>([]); // Displayed projects (paginated)
   const [loading, setLoading] = useState(true);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -293,9 +294,17 @@ export default function ProjectsPage() {
               return (
                 <div
                   key={project.id}
-                  onClick={() => router.push(`/projects/${project.id}`)}
+                  onClick={() => {
+                    setLoadingId(project.id);
+                    router.push(`/projects/${project.id}`);
+                  }}
                   className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer"
                 >
+                  {loadingId === project.id && (
+                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    </div>
+                  )}
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
                   />
@@ -310,9 +319,8 @@ export default function ProjectsPage() {
                         {config.label}
                       </Badge>
                       <span className="text-xs text-blue-500 font-medium">
-                        Xem chi tiết
+                        Xem chi tiết 
                       </span>
-
                     </div>
 
                     <h3 className="text-lg font-medium text-foreground leading-snug mb-2 line-clamp-2">

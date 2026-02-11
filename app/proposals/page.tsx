@@ -31,11 +31,11 @@ import { CollapsibleSection } from "@/components/collapsible-section";
 
 const statusConfig = {
   submitted: {
-    label: "Đã gửi",
+    label: "Mới",
     color: "bg-yellow-600",
     textColor: "text-yellow-700",
-    badgeColor: "text-yellow-700 bg-yellow-100",
-    icon: Send,
+    badgeColor: "text-yellow-600 bg-yellow-100",
+    icon: Lightbulb,
   },
   approved: {
     label: "Đã duyệt",
@@ -83,6 +83,10 @@ export default function ProposalsPage() {
     limit: 10,
     total: 0,
   });
+  const [processingAction, setProcessingAction] = useState<{
+    id: string;
+    type: "approve" | "reject";
+  } | null>(null);
 
   const { isRecording, isTranscribing, startRecording, stopRecording } =
     useVoiceRecorder({
@@ -153,11 +157,15 @@ export default function ProposalsPage() {
   };
 
   const handleApprove = async (id: string) => {
+    setProcessingAction({ id, type: "approve" });
     await updateProposal(id, { status: "approved" });
+    setProcessingAction(null);
   };
 
   const handleReject = async (id: string) => {
+    setProcessingAction({ id, type: "reject" });
     await updateProposal(id, { status: "rejected" });
+    setProcessingAction(null);
   };
 
   const handleSaveDirection = async (id: string) => {
@@ -315,18 +323,30 @@ export default function ProposalsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleApprove(proposal.id)}
+                          disabled={processingAction?.id === proposal.id}
                           className="flex-1 gap-1.5 text-green-600 hover:bg-green-50"
                         >
-                          <Check className="h-3.5 w-3.5" />
+                          {processingAction?.id === proposal.id &&
+                          processingAction.type === "approve" ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
                           Duyệt
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleReject(proposal.id)}
+                          disabled={processingAction?.id === proposal.id}
                           className="flex-1 gap-1.5 text-red-600 hover:bg-red-50"
                         >
-                          <X className="h-3.5 w-3.5" />
+                          {processingAction?.id === proposal.id &&
+                          processingAction.type === "reject" ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
                           Từ chối
                         </Button>
                       </div>
