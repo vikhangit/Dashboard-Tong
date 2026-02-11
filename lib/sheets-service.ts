@@ -6,7 +6,7 @@
  */
 
 import { google } from "googleapis";
-import { parse } from "date-fns";
+import { parse, subHours } from "date-fns";
 
 export interface SheetConfig {
   spreadsheetId: string;
@@ -256,10 +256,10 @@ class SheetsService {
       if (dateStr.includes("/")) {
         // Handle dd/MM/yyyy HH:mm:ss
         if (dateStr.includes(":")) {
-          return parse(dateStr, "dd/MM/yyyy HH:mm:ss", new Date());
+          return subHours(parse(dateStr, "dd/MM/yyyy HH:mm:ss", new Date()), 7);
         }
         // Handle dd/MM/yyyy
-        return parse(dateStr, "dd/MM/yyyy", new Date());
+        return subHours(parse(dateStr, "dd/MM/yyyy", new Date()), 7);
       }
     } catch (e) {
       console.warn(`[Sheets] Check parseDate error for ${dateStr}:`, e);
