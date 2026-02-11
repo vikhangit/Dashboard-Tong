@@ -1,5 +1,6 @@
-import Link from "next/link";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ChevronRight, type LucideIcon, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface StatsCardProps {
@@ -17,9 +18,23 @@ export function StatsCard({
   href,
   iconBgColor = "bg-primary",
 }: StatsCardProps) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = () => {
+    setIsLoading(true);
+    router.push(href);
+  };
+
   return (
-    <Link href={href}>
-      <Card className="glass-card p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer group">
+    <div onClick={handleClick}>
+      <Card className="glass-card p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer group relative overflow-hidden">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`${iconBgColor} rounded-xl p-2.5 text-white`}>
@@ -43,6 +58,6 @@ export function StatsCard({
           ))}
         </div>
       </Card>
-    </Link>
+    </div>
   );
 }
