@@ -26,6 +26,7 @@ import {
 import { format } from "date-fns";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
+import { formatShortDateTime } from "@/lib/utils";
 
 const statusConfig: Record<
   string,
@@ -224,8 +225,8 @@ export default function PlansPage() {
                         <StatusIcon className="w-3 h-3 mr-1" />
                         {config.label}
                       </Badge>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {format(new Date(plan.createdAt), "dd/MM/yyyy")}
+                      <span className="text-sm text-muted-foreground font-medium">
+                        {formatShortDateTime(plan.createdAt)}
                       </span>
                     </div>
 
