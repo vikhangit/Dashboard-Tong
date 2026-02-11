@@ -8,8 +8,9 @@ import {
   Pencil,
   MessageSquare,
   Mic,
+  Check,
   Loader2,
-  CheckCheck,
+  Wrench,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -44,14 +45,14 @@ const statusConfig = {
     color: "bg-blue-600",
     textColor: "text-blue-700",
     badgeColor: "text-blue-700 bg-blue-100",
-    icon: Loader2,
+    icon: Wrench,
   },
   resolved: {
     label: "Đã giải quyết",
     color: "bg-green-600",
     textColor: "text-green-700",
     badgeColor: "text-green-700 bg-green-100",
-    icon: CheckCheck,
+    icon: Check,
   },
 };
 

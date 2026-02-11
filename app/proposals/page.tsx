@@ -31,11 +31,11 @@ import { CollapsibleSection } from "@/components/collapsible-section";
 
 const statusConfig = {
   submitted: {
-    label: "Đã gửi",
+    label: "Mới",
     color: "bg-yellow-600",
     textColor: "text-yellow-700",
-    badgeColor: "text-yellow-700 bg-yellow-100",
-    icon: Send,
+    badgeColor: "text-yellow-600 bg-yellow-100",
+    icon: Lightbulb,
   },
   approved: {
     label: "Đã duyệt",

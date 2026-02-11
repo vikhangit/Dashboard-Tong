@@ -454,7 +454,7 @@ class SheetsService {
       const statusRaw = (row[0] as string)?.trim();
       let status = "draft";
       if (statusRaw === "Đã duyệt") status = "approved";
-      else if (statusRaw === "Đã gửi") status = "submitted";
+      else if (statusRaw === "Mới") status = "submitted";
       else if (statusRaw === "Từ chối") status = "rejected";
       else if (statusRaw === "Chỉ đạo" || statusRaw === "Đã chỉ đạo")
         status = "directed";
@@ -488,7 +488,7 @@ class SheetsService {
     const values = proposals.map((p) => {
       let statusLabel = "Nháp";
       if (p.status === "approved") statusLabel = "Đã duyệt";
-      else if (p.status === "submitted") statusLabel = "Đã gửi";
+      else if (p.status === "submitted") statusLabel = "Mới";
       else if (p.status === "rejected") statusLabel = "Từ chối";
       else if (p.status === "directed") statusLabel = "Chỉ đạo";
 
@@ -522,7 +522,7 @@ class SheetsService {
 
     let statusLabel = "Nháp";
     if (proposal.status === "approved") statusLabel = "Đã duyệt";
-    else if (proposal.status === "submitted") statusLabel = "Đã gửi";
+    else if (proposal.status === "submitted") statusLabel = "Mới";
     else if (proposal.status === "rejected") statusLabel = "Từ chối";
     else if (proposal.status === "directed") statusLabel = "Chỉ đạo";
 

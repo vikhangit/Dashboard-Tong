@@ -515,7 +515,7 @@ export default function HomePage() {
             href="/proposals"
             stats={[
               { label: "Nháp", value: statistics.proposals.draft },
-              { label: "Đã gửi", value: statistics.proposals.submitted },
+              { label: "Mới", value: statistics.proposals.submitted },
               { label: "Đã duyệt", value: statistics.proposals.approved },
             ]}
           />
