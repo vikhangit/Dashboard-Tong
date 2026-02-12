@@ -57,6 +57,8 @@ import {
   ChevronRight,
   Banknote,
   List,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
@@ -72,6 +74,7 @@ export default function RevenuePage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedProject, setSelectedProject] = useState<string | null>(null); // null = All
   const [searchProject, setSearchProject] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     fetchRevenues();
@@ -171,16 +174,85 @@ export default function RevenuePage() {
     };
   }, [data, timeFilter, selectedDate, selectedProject]);
 
-  // --- Left Column: Project List ---
-  const uniqueProjects = useMemo(() => {
-    const projects = Array.from(new Set(data.map((d) => d.projectName)));
+  // --- Left Column: Project List & Revenue ---
+  const projectStats = useMemo(() => {
+    // 1. Determine Date Range for the current filter
+    let start, end;
+    let prevStart, prevEnd;
+
+    if (timeFilter === "day") {
+      start = startOfDay(selectedDate);
+      end = endOfDay(selectedDate);
+      const prevDate = subDays(selectedDate, 1);
+      prevStart = startOfDay(prevDate);
+      prevEnd = endOfDay(prevDate);
+    } else if (timeFilter === "week") {
+      start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      const prevDate = subDays(selectedDate, 7);
+      prevStart = startOfWeek(prevDate, { weekStartsOn: 1 });
+      prevEnd = endOfWeek(prevDate, { weekStartsOn: 1 });
+    } else if (timeFilter === "month") {
+      start = startOfMonth(selectedDate);
+      end = endOfMonth(selectedDate);
+      const prevDate = subMonths(selectedDate, 1);
+      prevStart = startOfMonth(prevDate);
+      prevEnd = endOfMonth(prevDate);
+    } else {
+      start = startOfYear(selectedDate);
+      end = endOfYear(selectedDate);
+      const prevDate = subYears(selectedDate, 1);
+      prevStart = startOfYear(prevDate);
+      prevEnd = endOfYear(prevDate);
+    }
+
+    // 2. Group by Project and Calculate Total
+    const stats: Record<string, { current: number; previous: number }> = {};
+    const allProjects = new Set<string>();
+
+    data.forEach((d) => {
+      allProjects.add(d.projectName);
+      if (!stats[d.projectName]) {
+        stats[d.projectName] = { current: 0, previous: 0 };
+      }
+
+      if (d.date >= start && d.date <= end) {
+        stats[d.projectName].current += d.amount;
+      }
+      if (d.date >= prevStart && d.date <= prevEnd) {
+        stats[d.projectName].previous += d.amount;
+      }
+    });
+
+    const projectsWithRevenue = Array.from(allProjects).map((name) => {
+      const current = stats[name]?.current || 0;
+      const previous = stats[name]?.previous || 0;
+      let growth = 0;
+
+      if (previous === 0) {
+        growth = current > 0 ? 100 : 0;
+      } else {
+        growth = ((current - previous) / previous) * 100;
+      }
+
+      return {
+        name,
+        total: current,
+        growth,
+      };
+    });
+
+    // Filter by search
+    let filtered = projectsWithRevenue;
     if (searchProject) {
-      return projects.filter((p) =>
-        p.toLowerCase().includes(searchProject.toLowerCase()),
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(searchProject.toLowerCase()),
       );
     }
-    return projects;
-  }, [data, searchProject]);
+
+    // Sort by Total Revenue Descending
+    return filtered.sort((a, b) => b.total - a.total);
+  }, [data, timeFilter, selectedDate, searchProject]);
 
   // --- Right Column: Filtered Data ---
   const filteredData = useMemo(() => {
@@ -213,7 +285,6 @@ export default function RevenuePage() {
     return filtered.sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [data, timeFilter, selectedDate, selectedProject]);
 
-  // --- Right Column: Stats (Total, Max, Min, Average) ---
   // --- Right Column: Stats (Total, Max, Min, Average) ---
   const filteredStats = useMemo(() => {
     const total = filteredData.reduce((sum, item) => sum + item.amount, 0);
@@ -340,10 +411,27 @@ export default function RevenuePage() {
 
   const formatLargeCurrency = (val: number) => {
     if (val >= 1_000_000_000) {
-      return (val / 1_000_000_000).toFixed(1) + " Tỷ";
+      // 1.5 Tỷ, 1 Tỷ
+      return (
+        (val / 1_000_000_000).toLocaleString("vi-VN", {
+          maximumFractionDigits: 1,
+        }) + " Tỷ"
+      );
     }
     if (val >= 1_000_000) {
-      return (val / 1_000_000).toFixed(1) + " Triệu";
+      // 1.5 Triệu, 1 Triệu
+      return (
+        (val / 1_000_000).toLocaleString("vi-VN", {
+          maximumFractionDigits: 1,
+        }) + " Triệu"
+      );
+    }
+    // Handle hundreds of thousands (e.g. 500k -> 500 Nghìn)
+    if (val >= 1_000) {
+      return (
+        (val / 1_000).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) +
+        " Nghìn"
+      );
     }
     return formatCurrency(val);
   };
@@ -383,28 +471,90 @@ export default function RevenuePage() {
       />
 
       <main className="flex-1 container mx-auto px-4 py-4 max-w-7xl flex flex-col gap-4 sm:gap-6">
+        {/* --- Date & Time Filters (Moved) --- */}
+        <div className="glass-card p-3 rounded-2xl border border-white/40 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="flex items-center gap-1 bg-white/50 p-1 rounded-lg border w-full sm:w-auto overflow-x-auto">
+            {(["day", "week", "month", "year"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTimeFilter(t)}
+                className={cn(
+                  "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-base font-medium transition-all whitespace-nowrap",
+                  timeFilter === t
+                    ? "bg-white shadow-sm text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/50",
+                )}
+              >
+                {t === "day"
+                  ? "Ngày"
+                  : t === "week"
+                    ? "Tuần"
+                    : t === "month"
+                      ? "Tháng"
+                      : "Năm"}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigateDate("prev")}
+            >
+              <ChevronLeft className="size-7" />
+            </Button>
+            <span className="text-lg font-medium min-w-[100px] text-center">
+              {getDateLabel()}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigateDate("next")}
+            >
+              <ChevronRight className="size-7" />
+            </Button>
+          </div>
+        </div>
+
         {/* --- Hero Section --- */}
         <div className="glass-card p-3 sm:p-4 rounded-2xl border border-white/40 shadow-sm relative overflow-hidden">
           <div className="relative z-10">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">
-              Tổng doanh số ({heroStats.periodLabel})
-            </h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Tổng doanh số ({heroStats.periodLabel})
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDetails(!showDetails)}
+                className="h-6 w-6 text-blue-600 bg-blue-100 hover:bg-blue-200 hover:text-blue-500"
+              >
+                {showDetails ? (
+                  <Minus className="size-7" />
+                ) : (
+                  <Plus className="size-7" />
+                )}
+              </Button>
+            </div>
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
               <span className="text-2xl sm:text-lg font-bold text-foreground">
                 {formatCurrency(heroStats.currentRevenue)}
               </span>
               <div
                 className={cn(
-                  "flex items-center text-base font-medium my-2 px-2 py-0.5 rounded-full w-fit",
+                  "flex items-center text-base font-medium my-1 px-2 py-0.5 rounded-full w-fit",
                   heroStats.growth >= 0
                     ? "bg-green-100 text-green-700"
                     : "bg-red-100 text-red-700",
                 )}
               >
                 {heroStats.growth >= 0 ? (
-                  <TrendingUp className="size-6 mr-1" />
+                  <TrendingUp className="size-4 mr-1" />
                 ) : (
-                  <TrendingDown className="size-6 mr-1" />
+                  <TrendingDown className="size-4 mr-1" />
                 )}
                 {Math.abs(heroStats.growth).toFixed(1)}%{" "}
                 {heroStats.compareLabel}
@@ -415,8 +565,13 @@ export default function RevenuePage() {
 
         {/* --- Main Content Split View --- */}
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-auto lg:h-[800px]">
-          {/* Left Column: Project List (35%) */}
-          <Card className="lg:w-[35%] h-[300px] lg:h-full border-none shadow-md bg-white/60 backdrop-blur-md flex flex-col transition-all duration-300 gap-0 py-0">
+          {/* Left Column: Project List (35% or 100%) */}
+          <Card
+            className={cn(
+              "h-[600px] lg:h-full border-none shadow-md bg-white/60 backdrop-blur-md flex flex-col transition-all duration-300 gap-0 py-0",
+              showDetails ? "lg:w-[35%]" : "w-full",
+            )}
+          >
             <div className="p-3 border-b border-gray-100">
               <h3 className="font-semibold text-lg mb-2 flex items-center">
                 <List className="size-6 mr-2 text-primary" />
@@ -445,34 +600,99 @@ export default function RevenuePage() {
                         : "hover:bg-white/80 text-muted-foreground hover:text-foreground hover:translate-x-1",
                     )}
                   >
-                    <span className="flex items-center">
-                      <LayoutGrid className="w-4 h-4 mr-2" />
-                      Tất cả dự án
+                    <span className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border",
+                          selectedProject === null
+                            ? "bg-white/20 border-white/30 text-white"
+                            : "bg-primary/10 border-primary/20 text-primary",
+                        )}
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Tất cả</span>
                     </span>
                     {selectedProject === null && (
                       <ChevronRight className="w-4 h-4" />
                     )}
                   </button>
 
-                  {uniqueProjects.map((project) => (
+                  {projectStats.map((project) => (
                     <button
-                      key={project}
-                      onClick={() => setSelectedProject(project)}
+                      key={project.name}
+                      onClick={() => setSelectedProject(project.name)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 rounded-lg transition-all text-base font-medium flex items-center justify-between group",
-                        selectedProject === project
+                        "w-full text-left px-2 py-2 rounded-lg transition-all flex items-center justify-between group",
+                        selectedProject === project.name
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "hover:bg-white/80 text-muted-foreground hover:text-foreground hover:translate-x-1",
                       )}
                     >
-                      <span className="truncate">{project}</span>
-                      {selectedProject === project && (
-                        <ChevronRight className="w-4 h-4" />
+                      <span className="flex items-center gap-2 overflow-hidden w-full">
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border text-sm font-bold",
+                            selectedProject === project.name
+                              ? "bg-white/20 border-white/30 text-white"
+                              : "bg-primary/10 border-primary/20 text-primary",
+                          )}
+                        >
+                          {project.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex items-center justify-between flex-1 overflow-hidden">
+                          <span
+                            className={cn(
+                              "truncate text-lg mr-2",
+                              selectedProject === project.name
+                                ? "text-white"
+                                : "text-blue-700",
+                            )}
+                          >
+                            {project.name}
+                          </span>
+                          <div className="flex items-center justify-end gap-2 shrink-0">
+                            <span
+                              className={cn(
+                                "text-lg font-bold",
+                                selectedProject === project.name
+                                  ? "text-primary-foreground/90"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {formatLargeCurrency(project.total)}
+                            </span>
+                            {project.growth !== 0 && (
+                              <span
+                                className={cn(
+                                  "text-xs font-medium flex items-center",
+                                  project.growth > 0
+                                    ? selectedProject === project.name
+                                      ? "text-green-200"
+                                      : "text-green-600"
+                                    : selectedProject === project.name
+                                      ? "text-red-200"
+                                      : "text-red-600",
+                                )}
+                              >
+                                {project.growth > 0 ? (
+                                  <TrendingUp className="w-3 h-3 mr-0.5" />
+                                ) : (
+                                  <TrendingDown className="w-3 h-3 mr-0.5" />
+                                )}
+                                {Math.abs(project.growth).toFixed(0)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </span>
+                      {selectedProject === project.name && (
+                        <ChevronRight className="w-4 h-4 shrink-0 ml-1" />
                       )}
                     </button>
                   ))}
 
-                  {uniqueProjects.length === 0 && (
+                  {projectStats.length === 0 && (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Không tìm thấy dự án
                     </div>
@@ -485,163 +705,119 @@ export default function RevenuePage() {
           </Card>
 
           {/* Right Column: Details & Chart (65%) */}
-          <Card className="lg:w-[65%] h-full min-h-[500px] border-none shadow-md bg-white/60 backdrop-blur-md flex flex-col gap-0 py-0">
-            {/* Header / Time Filter */}
-            <div className="p-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div className="flex items-center gap-1 bg-white/50 p-1 rounded-lg border w-full sm:w-auto overflow-x-auto">
-                {(["day", "week", "month", "year"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTimeFilter(t)}
-                    className={cn(
-                      "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-base font-medium transition-all whitespace-nowrap",
-                      timeFilter === t
-                        ? "bg-white shadow-sm text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/50",
-                    )}
-                  >
-                    {t === "day"
-                      ? "Ngày"
-                      : t === "week"
-                        ? "Tuần"
-                        : t === "month"
-                          ? "Tháng"
-                          : "Năm"}
-                  </button>
-                ))}
-              </div>
+          {showDetails && (
+            <Card className="lg:w-[65%] h-full min-h-[500px] border-none shadow-md bg-white/60 backdrop-blur-md flex flex-col gap-0 py-0">
+              {/* Header / Time Filter */}
 
-              <div className="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-end">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => navigateDate("prev")}
-                >
-                  <ChevronLeft className="size-7" />
-                </Button>
-                <span className="text-lg font-medium min-w-[100px] text-center">
-                  {getDateLabel()}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => navigateDate("next")}
-                >
-                  <ChevronRight className="size-7" />
-                </Button>
-              </div>
-            </div>
+              <ScrollArea className="flex-1">
+                <div className="p-3 sm:p-4 space-y-4">
+                  {/* Title & Stats */}
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      {selectedProject
+                        ? `Doanh số ${selectedProject}`
+                        : "Chi tiết doanh số toàn bộ"}
+                      <span className="text-muted-foreground font-normal ml-2 hidden sm:inline text-lg">
+                        (
+                        {timeFilter === "day"
+                          ? "Ngày"
+                          : timeFilter === "week"
+                            ? "Tuần"
+                            : timeFilter === "month"
+                              ? "Tháng"
+                              : "Năm"}
+                        )
+                      </span>
+                    </h3>
 
-            <ScrollArea className="flex-1">
-              <div className="p-3 sm:p-4 space-y-4">
-                {/* Title & Stats */}
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">
-                    {selectedProject
-                      ? `Doanh số ${selectedProject}`
-                      : "Chi tiết doanh số toàn bộ"}
-                    <span className="text-muted-foreground font-normal ml-2 hidden sm:inline text-lg">
-                      (
-                      {timeFilter === "day"
-                        ? "Ngày"
-                        : timeFilter === "week"
-                          ? "Tuần"
-                          : timeFilter === "month"
-                            ? "Tháng"
-                            : "Năm"}
-                      )
-                    </span>
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-                    <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                      <p className="text-base text-blue-600 font-medium uppercase mb-0.5">
-                        Tổng doanh thu
-                      </p>
-                      <p className="text-xl font-bold text-blue-900">
-                        {formatLargeCurrency(filteredStats.total)}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100">
-                      <p className="text-base text-purple-600 font-medium uppercase mb-0.5">
-                        Trung bình/{filteredStats.unitLabel}
-                      </p>
-                      <p className="text-xl font-bold text-purple-900">
-                        {formatLargeCurrency(filteredStats.average)}
-                      </p>
-                    </div>
-                    <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-                      <p className="text-base text-emerald-600 font-medium uppercase mb-0.5">
-                        Cao nhất/{filteredStats.unitLabel}
-                      </p>
-                      <p className="text-xl font-bold text-emerald-900">
-                        {formatLargeCurrency(filteredStats.max)}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50/50 p-3 rounded-xl border border-orange-100">
-                      <p className="text-base text-orange-600 font-medium uppercase mb-0.5">
-                        Thấp nhất/{filteredStats.unitLabel}
-                      </p>
-                      <p className="text-xl font-bold text-orange-900">
-                        {formatLargeCurrency(filteredStats.min)}
-                      </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                      <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <p className="text-base text-blue-600 font-medium uppercase mb-0.5">
+                          Tổng doanh thu
+                        </p>
+                        <p className="text-xl font-bold text-blue-900">
+                          {formatLargeCurrency(filteredStats.total)}
+                        </p>
+                      </div>
+                      <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                        <p className="text-base text-purple-600 font-medium uppercase mb-0.5">
+                          Trung bình/{filteredStats.unitLabel}
+                        </p>
+                        <p className="text-xl font-bold text-purple-900">
+                          {formatLargeCurrency(filteredStats.average)}
+                        </p>
+                      </div>
+                      <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
+                        <p className="text-base text-emerald-600 font-medium uppercase mb-0.5">
+                          Cao nhất/{filteredStats.unitLabel}
+                        </p>
+                        <p className="text-xl font-bold text-emerald-900">
+                          {formatLargeCurrency(filteredStats.max)}
+                        </p>
+                      </div>
+                      <div className="bg-orange-50/50 p-3 rounded-xl border border-orange-100">
+                        <p className="text-base text-orange-600 font-medium uppercase mb-0.5">
+                          Thấp nhất/{filteredStats.unitLabel}
+                        </p>
+                        <p className="text-xl font-bold text-orange-900">
+                          {formatLargeCurrency(filteredStats.min)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Chart */}
-                <div className="h-[250px] w-full bg-white/40 rounded-xl p-0 border border-white/40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="#E5E7EB"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        stroke="#6B7280"
-                        fontSize={16}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        stroke="#6B7280"
-                        fontSize={16}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000000) {
-                            return `${(value / 1000000000).toFixed(1)}Tỷ`;
-                          }
-                          return `${(value / 1000000).toFixed(0)}Tr`;
-                        }}
-                        width={50}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "#F3F4F6" }}
-                        contentStyle={{
-                          borderRadius: "8px",
-                          border: "none",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                          fontSize: "22px",
-                        }}
-                        formatter={(value: number) => [formatCurrency(value)]}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="#3B82F6"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={40}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {/* Chart */}
+                  <div className="h-[250px] w-full bg-white/40 rounded-xl p-0 border border-white/40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#E5E7EB"
+                        />
+                        <XAxis
+                          dataKey="name"
+                          stroke="#6B7280"
+                          fontSize={16}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="#6B7280"
+                          fontSize={16}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(value) => {
+                            if (value >= 1000000000) {
+                              return `${(value / 1000000000).toFixed(1)}Tỷ`;
+                            }
+                            return `${(value / 1000000).toFixed(0)}Tr`;
+                          }}
+                          width={50}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#F3F4F6" }}
+                          contentStyle={{
+                            borderRadius: "8px",
+                            border: "none",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            fontSize: "22px",
+                          }}
+                          formatter={(value: number) => [formatCurrency(value)]}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill="#3B82F6"
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={40}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
-            </ScrollArea>
-          </Card>
+              </ScrollArea>
+            </Card>
+          )}
         </div>
       </main>
     </div>

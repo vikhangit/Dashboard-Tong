@@ -300,12 +300,12 @@ export default function HomePage() {
               iconColor="text-violet-600"
             />
 
-            <DashboardShortcut
+            {/* <DashboardShortcut
               onClick={() => setShowToolsDialog(true)}
               icon={LayoutGrid}
               label="Tools"
               iconColor="text-pink-600"
-            />
+            /> */}
           </div>
         </div>
 
