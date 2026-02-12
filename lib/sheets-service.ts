@@ -19,6 +19,7 @@ export interface SheetConfig {
     proposals?: string;
     incidents?: string;
     plans?: string;
+    revenue?: string;
   };
 }
 
@@ -44,6 +45,7 @@ class SheetsService {
         tasks: "Tasks!A2:E", // Default
         projects: "Projects!A2:E", // Default
         plans: "'Kế hoạch'!A2:G",
+        revenue: "'Doanh thu'!A2:D",
       },
     };
   }
@@ -608,6 +610,34 @@ class SheetsService {
     });
 
     return plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getRevenues(): Promise<any[]> {
+    const range = this.config.ranges.revenue || "'Doanh thu'!A2:D";
+    const rows = await this.readRange(range);
+
+    // Columns: Thời gian tạo (A) | Dự án (B) | Ngày (C) | Doanh số (VNĐ) (D)
+    const revenues = rows.map((row, index) => {
+      // Parse amount: remove commas, dots if any (std format usually just numbers or comma sep)
+      // Example: 450,000,000 -> 450000000
+      let amount = 0;
+      if (typeof row[3] === "string") {
+        amount = parseInt(row[3].replace(/[,.]/g, ""), 10);
+      } else if (typeof row[3] === "number") {
+        amount = row[3];
+      }
+
+      return {
+        id: `row-${index + 2}`,
+        createdAt: this.parseDate(row[0] as string),
+        projectName: row[1] || "",
+        date: this.parseDate(row[2] as string),
+        amount: isNaN(amount) ? 0 : amount,
+      };
+    });
+
+    // Sort by date desc
+    return revenues.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 }
 

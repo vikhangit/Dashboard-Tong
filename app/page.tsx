@@ -14,6 +14,7 @@ import {
   Send,
   Loader2,
   Eraser,
+  Banknote,
 } from "lucide-react";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { StatsCard } from "@/components/stats-card";
@@ -235,6 +236,14 @@ export default function HomePage() {
               label="Kế hoạch"
               iconColor="text-teal-600"
               // count={statistics.plans.active}
+            />
+
+            <DashboardShortcut
+              href="/revenue"
+              icon={Banknote}
+              label="Doanh thu"
+              iconColor="text-emerald-600"
+              // count={statistics.revenue.thisMonth}
             />
 
             <DashboardShortcut
@@ -560,6 +569,45 @@ export default function HomePage() {
                 label: "Hoàn thành",
                 value:
                   statistics.directives.completed + statistics.tasks.completed,
+              },
+            ]}
+          />
+
+          <StatsCard
+            title="Doanh thu"
+            icon={Banknote}
+            iconBgColor="bg-gradient-to-br from-emerald-500 to-green-600"
+            href="/revenue"
+            stats={[
+              {
+                label: "Tháng này",
+                value: statistics.revenue?.thisMonth
+                  ? new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                      maximumFractionDigits: 0,
+                    }).format(statistics.revenue.thisMonth)
+                  : "0 ₫",
+              },
+              {
+                label: "Tháng trước",
+                value: statistics.revenue?.lastMonth
+                  ? new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                      maximumFractionDigits: 0,
+                    }).format(statistics.revenue.lastMonth)
+                  : "0 ₫",
+              },
+              {
+                label: "Tổng cộng",
+                value: statistics.revenue?.total
+                  ? new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                      maximumFractionDigits: 0,
+                    }).format(statistics.revenue.total)
+                  : "0 ₫",
               },
             ]}
           />
