@@ -46,6 +46,7 @@ export async function GET() {
       fetchWithTimeout(
         "https://api.apecglobal.net/api/v1/projects/outside?limit=100",
       ),
+      safeSheetCall(() => sheetsService.getRevenues(), []),
     ]);
 
     // Helper to safely extract data
@@ -69,6 +70,7 @@ export async function GET() {
       data: { rows: [], paginations: { total: 0 } },
     });
     const projectsData = getData<any>(5, "projects", { data: [] });
+    const revenues = getData<any[]>(6, "revenues", []);
 
     // Ensure array structure before filtering. External APIs might return unexpected structure on error.
     const safeRows = (data: any) =>
@@ -144,6 +146,34 @@ export async function GET() {
         paused: plans.filter((p) => p.status === "paused").length,
         cancelled: plans.filter((p) => p.status === "cancelled").length,
         total: plans.length,
+      },
+      revenue: {
+        total: revenues.reduce((sum, r) => sum + r.amount, 0),
+        thisMonth: revenues
+          .filter((r) => {
+            const d = new Date(r.date);
+            const now = new Date();
+            return (
+              d.getMonth() === now.getMonth() &&
+              d.getFullYear() === now.getFullYear()
+            );
+          })
+          .reduce((sum, r) => sum + r.amount, 0),
+        lastMonth: revenues
+          .filter((r) => {
+            const d = new Date(r.date);
+            const now = new Date();
+            const lastMonth = new Date(
+              now.getFullYear(),
+              now.getMonth() - 1,
+              1,
+            );
+            return (
+              d.getMonth() === lastMonth.getMonth() &&
+              d.getFullYear() === lastMonth.getFullYear()
+            );
+          })
+          .reduce((sum, r) => sum + r.amount, 0),
       },
     };
 

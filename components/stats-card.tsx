@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 interface StatsCardProps {
   title: string;
   icon: LucideIcon;
-  stats: { label: string; value: number }[];
+  stats: { label: string; value: number | string }[];
   href: string;
   iconBgColor?: string;
 }
