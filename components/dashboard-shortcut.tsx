@@ -3,7 +3,8 @@ import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardShortcutProps {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   icon: LucideIcon;
   label: string;
   iconColor?: string;
@@ -13,30 +14,43 @@ interface DashboardShortcutProps {
 
 export function DashboardShortcut({
   href,
+  onClick,
   icon: Icon,
   label,
   iconColor,
   count,
   className,
 }: DashboardShortcutProps) {
-  return (
-    <Link href={href} className="relative">
-      <div
-        className={cn(
-          "bg-white border-b-3 border-slate-200 p-2 rounded-2xl text-center hover:bg-white/80 transition-all",
-          className,
-        )}
-      >
-        <Icon className={cn("h-5 w-5 mx-auto mb-1", iconColor)} />
-        <div className="text-base text-foreground font-medium leading-tight">
-          {label}
-        </div>
-        {count !== undefined && count > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-            {count}
-          </span>
-        )}
+  const content = (
+    <div
+      className={cn(
+        "bg-white border-b-3 border-slate-200 p-2 rounded-2xl text-center hover:bg-white/80 transition-all h-full flex flex-col items-center justify-center",
+        className,
+      )}
+    >
+      <Icon className={cn("h-5 w-5 mx-auto mb-1", iconColor)} />
+      <div className="text-base text-foreground font-medium leading-tight">
+        {label}
       </div>
+      {count !== undefined && count > 0 && (
+        <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+          {count}
+        </span>
+      )}
+    </div>
+  );
+
+  if (onClick) {
+    return (
+      <div onClick={onClick} className="relative cursor-pointer h-full">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href || "#"} className="relative h-full">
+      {content}
     </Link>
   );
 }

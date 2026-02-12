@@ -15,7 +15,18 @@ import {
   Loader2,
   Eraser,
   Banknote,
+  Bot,
+  MessageSquare,
+  Sparkles,
+  Zap,
+  LayoutGrid,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { StatsCard } from "@/components/stats-card";
 import { DashboardShortcut } from "@/components/dashboard-shortcut";
@@ -26,11 +37,47 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Statistics } from "@/lib/types";
 
+const AI_TOOLS = [
+  {
+    name: "Gemini",
+    url: "https://gemini.google.com/",
+    icon: Sparkles,
+    color: "text-blue-500",
+    bgColor: "bg-blue-50",
+    description: "Google AI",
+  },
+  {
+    name: "ChatGPT",
+    url: "https://chat.openai.com/",
+    icon: MessageSquare,
+    color: "text-green-500",
+    bgColor: "bg-green-50",
+    description: "OpenAI",
+  },
+  {
+    name: "Claude",
+    url: "https://claude.ai/",
+    icon: Bot,
+    color: "text-orange-500",
+    bgColor: "bg-orange-50",
+    description: "Anthropic",
+  },
+  {
+    name: "Perplexity",
+    url: "https://www.perplexity.ai/",
+    icon: Zap,
+    color: "text-teal-500",
+    bgColor: "bg-teal-50",
+    description: "AI Search",
+  },
+];
+
 export default function HomePage() {
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showToolsDialog, setShowToolsDialog] = useState(false);
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [lastTranscript, setLastTranscript] = useState<string>("");
@@ -252,6 +299,13 @@ export default function HomePage() {
               label="Phân tích"
               iconColor="text-violet-600"
             />
+
+            <DashboardShortcut
+              onClick={() => setShowToolsDialog(true)}
+              icon={LayoutGrid}
+              label="Tools"
+              iconColor="text-pink-600"
+            />
           </div>
         </div>
 
@@ -469,6 +523,14 @@ export default function HomePage() {
                   Quản lý dự án
                 </Button>
               </Link>
+              <Button
+                variant="outline"
+                className="w-full justify-start glass-card hover:bg-white/80 bg-transparent"
+                onClick={() => setShowToolsDialog(true)}
+              >
+                <LayoutGrid className="mr-2 h-4 w-4 text-pink-600" />
+                Công cụ AI
+              </Button>
             </div>
           </div>
 
@@ -612,6 +674,36 @@ export default function HomePage() {
             ]}
           />
         </div>
+
+        {/* Tools Dialog */}
+        <Dialog open={showToolsDialog} onOpenChange={setShowToolsDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl">
+                Công cụ AI
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              {AI_TOOLS.map((tool) => (
+                <a
+                  key={tool.name}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl transition-all hover:scale-105 active:scale-95 ${tool.bgColor} border border-transparent hover:border-slate-200`}
+                >
+                  <tool.icon className={`h-8 w-8 mb-2 ${tool.color}`} />
+                  <div className="font-semibold text-foreground">
+                    {tool.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {tool.description}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Bottom Navigation - Mobile Only */}
         {isMobile && (
