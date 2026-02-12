@@ -139,6 +139,14 @@ export interface Plan {
   attachments?: string[]; // Links to files
 }
 
+export interface Revenue {
+  id: string;
+  createdAt: Date; // Thời gian tạo
+  projectName: string; // Dự án
+  date: Date; // Ngày
+  amount: number; // Doanh số (VNĐ)
+}
+
 export interface Statistics {
   directives: {
     pending: number;
@@ -184,6 +192,11 @@ export interface Statistics {
     cancelled: number;
     total: number;
   };
+  revenue: {
+    total: number;
+    lastMonth: number;
+    thisMonth: number;
+  };
 }
 
 export interface DashboardConfig {
@@ -206,7 +219,8 @@ export interface DashboardCard {
     | "proposals"
     | "incidents"
     | "plans"
-    | "analysis";
+    | "analysis"
+    | "revenue";
   enabled: boolean;
   order: number;
 }
