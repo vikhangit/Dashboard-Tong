@@ -246,3 +246,10 @@ export interface ApiResponse<T> {
     };
   };
 }
+
+export interface Tool {
+  id: string;
+  logo: string;
+  name: string;
+  url: string;
+}

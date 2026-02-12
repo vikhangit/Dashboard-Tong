@@ -20,6 +20,7 @@ export interface SheetConfig {
     incidents?: string;
     plans?: string;
     revenue?: string;
+    tools?: string;
   };
 }
 
@@ -46,6 +47,7 @@ class SheetsService {
         projects: "Projects!A2:E", // Default
         plans: "'Kế hoạch'!A2:G",
         revenue: "'Doanh thu'!A2:D",
+        tools: "'Tools'!A2:C",
       },
     };
   }
@@ -638,6 +640,21 @@ class SheetsService {
 
     // Sort by date desc
     return revenues.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async getTools(): Promise<any[]> {
+    const range = this.config.ranges.tools || "'Tools'!A2:C";
+    const rows = await this.readRange(range);
+
+    // Columns: Logo (A) | Name (B) | URL (C)
+    const tools = rows.map((row, index) => ({
+      id: `row-${index + 2}`,
+      logo: row[0] || "",
+      name: row[1] || "",
+      url: row[2] || "",
+    }));
+
+    return tools;
   }
 }
 
