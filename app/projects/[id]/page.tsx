@@ -107,7 +107,7 @@ export default function ProjectDetailPage() {
     try {
       setLoading(true);
       const response = await axios.get<{ data: Project }>(
-        `https://apec-global-backend.vercel.app/api/v1/projects/outside`,
+        `https://api.apecglobal.net/api/v1/projects/outside`,
         {
           params: { id },
         },
