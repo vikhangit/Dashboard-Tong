@@ -253,3 +253,14 @@ export interface Tool {
   name: string;
   url: string;
 }
+
+export interface ChecklistItem {
+  id: string;
+  status: "preparing" | "completed";
+  project: string;
+  field: string;
+  task: string;
+  startDate: Date;
+  deadline?: Date;
+  progress: number;
+}
