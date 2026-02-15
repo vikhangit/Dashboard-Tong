@@ -189,14 +189,15 @@ export default function ChecklistPage() {
       />
 
       <div className="container mx-auto px-4 py-4 max-w-7xl">
-        {/* Header Section */}
         {/* Header & Summary Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white/80 p-2 pl-4 rounded-2xl border border-white/60 shadow-sm backdrop-blur-md transition-all hover:shadow-md hover:bg-white/90">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-indigo-50/50 p-4 rounded-[2rem] border-2 border-indigo-100 shadow-xl shadow-blue-500/5 backdrop-blur-xl transition-all hover:shadow-2xl hover:shadow-blue-500/10 hover:border-indigo-200">
           {/* Project Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="size-5 text-blue-600 shrink-0" />
+          <div className="flex items-center gap-3 bg-white p-2 pr-5 rounded-2xl border-2 border-indigo-50 shadow-sm transition-colors hover:border-indigo-100/80">
+            <div className="bg-indigo-50 p-2 rounded-xl text-blue-600">
+              <Filter className="size-5 shrink-0" />
+            </div>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-blue-600 font-medium h-9 p-2 hover:bg-slate-50 rounded-lg transition-colors focus:bg-slate-50 text-lg">
+              <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-extrabold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight">
                 <SelectValue placeholder="Chọn dự án" />
               </SelectTrigger>
               <SelectContent align="start" className="min-w-[280px]">
@@ -204,7 +205,7 @@ export default function ChecklistPage() {
                   <SelectItem
                     key={project}
                     value={project}
-                    className="py-2.5 cursor-pointer focus:bg-blue-50 focus:text-blue-700 font-medium text-slate-700 text-lg"
+                    className="py-3 cursor-pointer focus:bg-blue-50 focus:text-blue-700 font-medium text-slate-700 text-lg"
                   >
                     {project}
                   </SelectItem>
@@ -215,53 +216,66 @@ export default function ChecklistPage() {
 
           {/* Project Summary Info */}
           {projectSummary && (
-            <div className="flex flex-wrap items-center gap-4 pr-2">
-              {/* Status */}
-              <Badge
-                variant={
-                  projectSummary.status === "Hoàn thành"
-                    ? "default"
-                    : "secondary"
-                }
-                className={`text-base px-3 py-1 [&>svg]:size-5 ${
-                  projectSummary.status === "Hoàn thành"
-                    ? "bg-green-100 text-green-700 hover:bg-green-100"
-                    : "bg-amber-100 text-amber-700 hover:bg-amber-100"
-                }`}
-              >
-                {projectSummary.status === "Hoàn thành" ? (
-                  <CheckCircle2 className="size-5 mr-1" />
-                ) : (
-                  <Clock className="size-5 mr-1" />
-                )}
-                {projectSummary.status}
-              </Badge>
+            <div className="flex flex-col gap-2 min-w-[240px]">
+              {/* Row 1: Status & Progress */}
+              <div className="flex items-stretch gap-2">
+                {/* Status */}
+                <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center justify-center flex-[4]">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                    Trạng thái
+                  </span>
+                  <div
+                    className={`flex items-center font-bold ${
+                      projectSummary.status === "Hoàn thành"
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }`}
+                  >
+                    <span className="text-lg">{projectSummary.status}</span>
+                  </div>
+                </div>
 
-              {/* Progress */}
-              <span
-                className={`text-xl font-bold ${
-                  projectSummary.avgProgress === 100
-                    ? "text-green-600 bg-green-100 px-3 py-1 rounded-lg"
-                    : "text-blue-600 bg-blue-100 px-3 py-1 rounded-lg"
-                }`}
-              >
-                {projectSummary.avgProgress}%
-              </span>
+                {/* Progress */}
+                <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center justify-center flex-[2]">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">
+                    Tiến độ
+                  </span>
+                  <span
+                    className={`text-lg leading-none font-black ${
+                      projectSummary.avgProgress === 100
+                        ? "text-green-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {projectSummary.avgProgress}%
+                  </span>
+                </div>
+              </div>
 
-              {/* Start Date - Deadline */}
-              <div className="flex items-center gap-2 text-lg text-slate-600">
-                <Calendar className="h-5 w-5 text-blue-500" />
-                <span className="font-medium text-slate-700">
-                  {projectSummary.earliestStart
-                    ? format(projectSummary.earliestStart, "dd/MM/yyyy")
-                    : "--/--/----"}
+              {/* Row 2: Time (Full Width) */}
+              <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center w-full">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
+                  Thời gian
                 </span>
-                <span className="text-slate-400">-</span>
-                <span className="font-medium text-red-600">
-                  {projectSummary.latestDeadline
-                    ? format(projectSummary.latestDeadline, "dd/MM/yyyy")
-                    : "--/--/----"}
-                </span>
+                <div className="flex items-center gap-2 text-base font-bold text-slate-700 w-full justify-center">
+                  <span>
+                    {projectSummary.earliestStart
+                      ? format(projectSummary.earliestStart, "dd/MM/yyyy")
+                      : "--/--/----"}
+                  </span>
+                  <span className="text-slate-600">→</span>
+                  <span
+                    className={
+                      projectSummary.status !== "Hoàn thành"
+                        ? "text-red-500"
+                        : ""
+                    }
+                  >
+                    {projectSummary.latestDeadline
+                      ? format(projectSummary.latestDeadline, "dd/MM/yyyy")
+                      : "--/--/----"}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -285,11 +299,11 @@ export default function ChecklistPage() {
                 value={field}
                 className="bg-white/10 rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden"
               >
-                <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
+                <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white/40 group [&>svg]:hidden transition-all duration-200 rounded-b-none">
                   <div className="flex flex-1 items-center justify-between">
                     <div className="flex items-center gap-1">
                       <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                      <span className="text-lg font-bold text-slate-800 uppercase tracking-tight">
+                      <span className="text-lg font-bold text-blue-900 uppercase tracking-tight">
                         {field}
                       </span>
                     </div>
@@ -355,10 +369,10 @@ export default function ChecklistPage() {
                       groupedItems[field]?.map((item) => (
                         <div
                           key={item.id}
-                          className="group relative flex flex-col justify-between rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 p-4"
+                          className="group relative flex flex-col justify-between rounded-xl bg-white border border-blue-300 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 p-4"
                         >
                           <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-semibold text-lg text-blue-900 line-clamp-2 leading-snug">
+                            <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
                               {item.task}
                             </h4>
                           </div>
@@ -371,14 +385,14 @@ export default function ChecklistPage() {
                             </div>
                           )}
 
-                          <div className="mt-auto pt-3 border-t border-slate-100">
+                          <div className="mt-auto">
                             {/* Progress */}
                             <div className="space-y-2">
                               <div className="flex justify-between items-center text-base text-slate-600">
-                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                <div className="flex items-center gap-1.5">
                                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
                                   <span className="text-base font-medium">
-                                    {format(new Date(item.startDate), "dd/MM")}
+                                    {format(new Date(item.startDate), "dd/MM/yy")}
                                     {" - "}
                                     <span
                                       className={
@@ -390,7 +404,7 @@ export default function ChecklistPage() {
                                       {item.deadline
                                         ? format(
                                             new Date(item.deadline),
-                                            "dd/MM/yyy",
+                                            "dd/MM/yy",
                                           )
                                         : "..."}
                                     </span>
