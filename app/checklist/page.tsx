@@ -188,16 +188,16 @@ export default function ChecklistPage() {
         icon={<ListChecks className="size-6 text-indigo-600" />}
       />
 
-      <div className="container mx-auto px-4 py-4 max-w-7xl">
+      <div className="container mx-auto p-3 max-w-7xl">
         {/* Header & Summary Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-indigo-50/50 p-4 rounded-[2rem] border-2 border-indigo-100 shadow-xl shadow-blue-500/5 backdrop-blur-xl transition-all hover:shadow-2xl hover:shadow-blue-500/10 hover:border-indigo-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gradient-to-br from-red-900 via-indigo-900/80 to-blue-900 px-3 py-4 rounded-3xl border border-indigo-700 shadow-xl shadow-blue-900/20">
           {/* Project Filter */}
-          <div className="flex items-center gap-3 bg-white p-2 pr-5 rounded-2xl border-2 border-indigo-50 shadow-sm transition-colors hover:border-indigo-100/80">
+          <div className="flex items-center gap-3 bg-white p-2 pr-5 rounded-2xl border border-slate-400">
             <div className="bg-indigo-50 p-2 rounded-xl text-blue-600">
               <Filter className="size-5 shrink-0" />
             </div>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-extrabold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight">
+              <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-semibold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight">
                 <SelectValue placeholder="Chọn dự án" />
               </SelectTrigger>
               <SelectContent align="start" className="min-w-[280px]">
@@ -220,7 +220,7 @@ export default function ChecklistPage() {
               {/* Row 1: Status & Progress */}
               <div className="flex items-stretch gap-2">
                 {/* Status */}
-                <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center justify-center flex-[4]">
+                <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[4]">
                   <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
                     Trạng thái
                   </span>
@@ -236,8 +236,8 @@ export default function ChecklistPage() {
                 </div>
 
                 {/* Progress */}
-                <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center justify-center flex-[2]">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">
+                <div className="bg-white px-3 py-1 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[2]">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">
                     Tiến độ
                   </span>
                   <span
@@ -253,7 +253,7 @@ export default function ChecklistPage() {
               </div>
 
               {/* Row 2: Time (Full Width) */}
-              <div className="bg-white px-3 py-1.5 rounded-2xl border-2 border-indigo-50 shadow-sm flex flex-col items-center w-full">
+              <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center w-full">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
                   Thời gian
                 </span>
@@ -297,7 +297,7 @@ export default function ChecklistPage() {
               <AccordionItem
                 key={field}
                 value={field}
-                className="bg-white/10 rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden"
+                className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
               >
                 <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white/40 group [&>svg]:hidden transition-all duration-200 rounded-b-none">
                   <div className="flex flex-1 items-center justify-between">
@@ -392,7 +392,10 @@ export default function ChecklistPage() {
                                 <div className="flex items-center gap-1.5">
                                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
                                   <span className="text-base font-medium">
-                                    {format(new Date(item.startDate), "dd/MM/yy")}
+                                    {format(
+                                      new Date(item.startDate),
+                                      "dd/MM/yy",
+                                    )}
                                     {" - "}
                                     <span
                                       className={
