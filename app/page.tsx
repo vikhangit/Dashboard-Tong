@@ -16,6 +16,8 @@ import {
   Eraser,
   Banknote,
   LayoutGrid,
+  ListTodo,
+  ListChecks,
 } from "lucide-react";
 
 import { VoiceRecorder } from "@/components/voice-recorder";
@@ -251,6 +253,13 @@ export default function HomePage() {
             />
 
             <DashboardShortcut
+              href="/checklist"
+              icon={ListChecks}
+              label="Checklist"
+              iconColor="text-indigo-600"
+            />
+
+            <DashboardShortcut
               href="/analysis"
               icon={BarChart3}
               label="Phân tích"
@@ -481,6 +490,15 @@ export default function HomePage() {
                 >
                   <FolderKanban className="mr-2 h-4 w-4" />
                   Quản lý dự án
+                </Button>
+              </Link>
+              <Link href="/checklist" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start glass-card hover:bg-white/80 bg-transparent"
+                >
+                  <ListTodo className="mr-2 h-4 w-4" />
+                  Checklist công việc
                 </Button>
               </Link>
               <Button

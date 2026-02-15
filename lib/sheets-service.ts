@@ -7,6 +7,7 @@
 
 import { google } from "googleapis";
 import { parse, subHours } from "date-fns";
+import { ChecklistItem } from "./types";
 
 export interface SheetConfig {
   spreadsheetId: string;
@@ -21,6 +22,7 @@ export interface SheetConfig {
     plans?: string;
     revenue?: string;
     tools?: string;
+    checklist?: string;
   };
 }
 
@@ -48,6 +50,7 @@ class SheetsService {
         plans: "'Kế hoạch'!A2:G",
         revenue: "'Doanh thu'!A2:D",
         tools: "'Tools'!A2:C",
+        checklist: "'Checklist'!A2:G",
       },
     };
   }
@@ -655,6 +658,40 @@ class SheetsService {
     }));
 
     return tools;
+  }
+
+  async getChecklist(): Promise<any[]> {
+    const range = this.config.ranges.checklist || "'Checklist'!A2:G";
+    const rows = await this.readRange(range);
+
+    // Columns: Trạng thái (A) | Dự án (B) | Lĩnh vực (C) | Công việc (D) | Ngày bắt đầu (E) | Deadline (F) | Tiến độ (%) (G)
+    const checklist = rows.map((row, index) => {
+      const rowStatus = (row[0] || "").toLowerCase().trim();
+      let status: ChecklistItem["status"] = "preparing"; // Default to "Đang chuẩn bị"
+      if (rowStatus === "hoàn thành" || rowStatus === "completed") {
+        status = "completed";
+      }
+
+      const progressRaw = row[6] as string;
+      let progress = 0;
+      if (progressRaw) {
+        progress = parseFloat(progressRaw.toString().replace("%", "").trim());
+        if (isNaN(progress)) progress = 0;
+      }
+
+      return {
+        id: `row-${index + 2}`,
+        status,
+        project: row[1] || "",
+        field: row[2] || "Khác",
+        task: row[3] || "",
+        startDate: this.parseDate(row[4] as string),
+        deadline: row[5] ? this.parseDate(row[5] as string) : undefined,
+        progress,
+      };
+    });
+
+    return checklist;
   }
 }
 
