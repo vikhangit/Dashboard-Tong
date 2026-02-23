@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Lightbulb,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,12 @@ interface NotificationItem {
   isRead: boolean;
 }
 
-export function AppHeader() {
+interface AppHeaderProps {
+  title?: string;
+  backHref?: string;
+}
+
+export function AppHeader({ title, backHref }: AppHeaderProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -84,15 +90,32 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="relative h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 p-2">
-              <Bot className="h-full w-full text-white" />
-              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-cyan-400 border-2 border-white" />
-            </div>
-            <div>
-              <div className="text-base font-semibold text-primary">
-                APEC GLOBAL
+          <div className="flex items-center gap-3">
+            {backHref ? (
+              <Link href={backHref}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-slate-100"
+                >
+                  <ArrowLeft className="h-5 w-5 text-slate-600" />
+                </Button>
+              </Link>
+            ) : (
+              <div className="relative h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 p-2">
+                <Bot className="h-full w-full text-white" />
+                <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-cyan-400 border-2 border-white" />
               </div>
+            )}
+
+            <div>
+              {title ? (
+                <div className="text-lg font-bold text-foreground">{title}</div>
+              ) : (
+                <div className="text-base font-semibold text-primary">
+                  APEC GLOBAL
+                </div>
+              )}
             </div>
           </div>
 
