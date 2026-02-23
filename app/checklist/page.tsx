@@ -137,7 +137,6 @@ export default function ChecklistPage() {
     return { status, earliestStart, latestDeadline, avgProgress };
   }, [filteredItems]);
 
-  // Group by field
   // Group by field and get available fields
   const { groupedItems, displayFields } = useMemo(() => {
     const groups: Record<string, ChecklistItem[]> = {};
@@ -356,7 +355,7 @@ export default function ChecklistPage() {
                     )}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-3 pb-4 pt-2 bg-white/40">
+                <AccordionContent className="px-3 pb-2 pt-0 bg-white/40">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
                     {groupedItems[field]?.length === 0 ? (
                       <div className="col-span-full text-center py-8 text-muted-foreground">
@@ -369,7 +368,7 @@ export default function ChecklistPage() {
                       groupedItems[field]?.map((item) => (
                         <div
                           key={item.id}
-                          className="group relative flex flex-col justify-between rounded-xl bg-white border border-blue-300 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 p-4"
+                          className="group relative flex flex-col justify-between rounded-xl bg-gradient-to-br from-purple-50 to-blue-100  border-2 border-blue-300 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-200 p-3"
                         >
                           <div className="flex justify-between items-start mb-3">
                             <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
@@ -425,7 +424,7 @@ export default function ChecklistPage() {
                               </div>
                               <Progress
                                 value={item.progress}
-                                className="h-1.5 bg-slate-100"
+                                className="h-1.5 bg-slate-50"
                                 indicatorClassName={
                                   item.progress === 100
                                     ? "bg-green-500"
