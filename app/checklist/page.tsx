@@ -298,7 +298,7 @@ export default function ChecklistPage() {
                 value={field}
                 className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
               >
-                <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white/40 group [&>svg]:hidden transition-all duration-200 rounded-b-none">
+                <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
                   <div className="flex flex-1 items-center justify-between">
                     <div className="flex items-center gap-1">
                       <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
@@ -355,7 +355,7 @@ export default function ChecklistPage() {
                     )}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-3 pb-2 pt-0 bg-white/40">
+                <AccordionContent className="px-3 pb-2 pt-0 bg-white">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
                     {groupedItems[field]?.length === 0 ? (
                       <div className="col-span-full text-center py-8 text-muted-foreground">
