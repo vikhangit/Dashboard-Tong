@@ -68,7 +68,7 @@ const ORDERED_FIELDS = [
 export default function ChecklistPage() {
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const [selectedStatus, setSelectedStatus] = useState<string>("Mới");
   const [selectedProject, setSelectedProject] = useState<string>("");
 
   useEffect(() => {
@@ -94,13 +94,45 @@ export default function ChecklistPage() {
     const uniqueProjects = Array.from(
       new Set(items.map((item) => item.project)),
     ).filter(Boolean);
-    return uniqueProjects.sort();
-  }, [items]);
+    const allProjects = uniqueProjects.sort();
+
+    if (selectedStatus === "all") return allProjects;
+
+    const now = new Date();
+    return allProjects.filter((projectName) => {
+      const projectItems = items.filter((i) => i.project === projectName);
+      if (projectItems.length === 0) return false;
+
+      const allCompleted = projectItems.every((i) => i.status === "completed");
+
+      const startDates = projectItems
+        .map((i) => (i.startDate ? new Date(i.startDate).getTime() : 0))
+        .filter((d) => d > 0);
+      const earliestStart =
+        startDates.length > 0 ? new Date(Math.min(...startDates)) : null;
+
+      let status = allCompleted ? "Hoàn thành" : "Đang chuẩn bị";
+      if (!allCompleted && earliestStart) {
+        if (
+          earliestStart.getTime() >=
+          now.getTime() - 7 * 24 * 60 * 60 * 1000
+        ) {
+          status = "Mới";
+        }
+      }
+
+      return status === selectedStatus;
+    });
+  }, [items, selectedStatus]);
 
   // Set default project when loaded
   useEffect(() => {
-    if (!selectedProject && projects.length > 0) {
-      setSelectedProject(projects[0]);
+    if (projects.length > 0) {
+      if (!selectedProject || !projects.includes(selectedProject)) {
+        setSelectedProject(projects[0]);
+      }
+    } else {
+      setSelectedProject("");
     }
   }, [projects, selectedProject]);
 
@@ -115,13 +147,14 @@ export default function ChecklistPage() {
     if (filteredItems.length === 0) return null;
 
     const allCompleted = filteredItems.every((i) => i.status === "completed");
-    const status = allCompleted ? "Hoàn thành" : "Đang chuẩn bị";
 
     const startDates = filteredItems
       .map((i) => (i.startDate ? new Date(i.startDate).getTime() : 0))
       .filter((d) => d > 0);
     const earliestStart =
       startDates.length > 0 ? new Date(Math.min(...startDates)) : null;
+
+    let status = allCompleted ? "Hoàn thành" : "Đang chuẩn bị";
 
     const deadlines = filteredItems
       .map((i) => (i.deadline ? new Date(i.deadline).getTime() : 0))
@@ -190,27 +223,104 @@ export default function ChecklistPage() {
       <div className="container mx-auto p-3 max-w-7xl">
         {/* Header & Summary Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gradient-to-br from-red-900 via-indigo-900/80 to-blue-900 px-3 py-4 rounded-3xl border border-indigo-700 shadow-xl shadow-blue-900/20">
-          {/* Project Filter */}
-          <div className="flex items-center gap-3 bg-white p-2 pr-5 rounded-2xl border border-slate-400">
-            <div className="bg-indigo-50 p-2 rounded-xl text-blue-600">
-              <Filter className="size-5 shrink-0" />
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            {/* Project Filter */}
+            <div className="flex items-center gap-3 bg-white p-2 pr-3 rounded-2xl border border-slate-400 flex-1 sm:flex-none">
+              <div className="bg-indigo-50 p-2 rounded-xl text-blue-600 hidden sm:block">
+                <FolderKanban className="size-5 shrink-0" />
+              </div>
+              <Select
+                value={selectedProject}
+                onValueChange={setSelectedProject}
+              >
+                <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-semibold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight sm:max-w-xs truncate">
+                  <SelectValue placeholder="Chọn dự án" />
+                </SelectTrigger>
+                <SelectContent align="start" className="min-w-[340px] p-1">
+                  {/* Status Filter inside Dropdown */}
+                  <div className="flex items-center gap-1 p-0 mb-2 flex-wrap">
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedStatus("all");
+                      }}
+                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        selectedStatus === "all"
+                          ? "bg-slate-800 text-white shadow-sm"
+                          : "text-slate-600 hover:bg-white hover:shadow-sm"
+                      }`}
+                    >
+                      Tất cả
+                    </button>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedStatus("Mới");
+                      }}
+                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        selectedStatus === "Mới"
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-blue-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      Mới
+                    </button>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedStatus("Đang chuẩn bị");
+                      }}
+                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        selectedStatus === "Đang chuẩn bị"
+                          ? "bg-amber-500 text-white shadow-sm"
+                          : "text-amber-600 hover:bg-amber-50"
+                      }`}
+                    >
+                      Đang chuẩn bị
+                    </button>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedStatus("Hoàn thành");
+                      }}
+                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        selectedStatus === "Hoàn thành"
+                          ? "bg-green-600 text-white shadow-sm"
+                          : "text-green-600 hover:bg-green-50"
+                      }`}
+                    >
+                      Xong
+                    </button>
+                  </div>
+
+                  <div className="h-px bg-slate-100 mb-2 mx-1" />
+
+                  {projects.map((project) => (
+                    <SelectItem
+                      key={project}
+                      value={project}
+                      className="py-3 cursor-pointer focus:bg-blue-100 focus:text-blue-700 font-medium text-slate-700 text-lg"
+                    >
+                      {project}
+                    </SelectItem>
+                  ))}
+                  {projects.length === 0 && (
+                    <div className="py-3 px-2 text-slate-500 font-medium text-lg text-center">
+                      Không có dự án
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-semibold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight">
-                <SelectValue placeholder="Chọn dự án" />
-              </SelectTrigger>
-              <SelectContent align="start" className="min-w-[280px]">
-                {projects.map((project) => (
-                  <SelectItem
-                    key={project}
-                    value={project}
-                    className="py-3 cursor-pointer focus:bg-blue-50 focus:text-blue-700 font-medium text-slate-700 text-lg"
-                  >
-                    {project}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Project Summary Info */}
