@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { sheetsService } from "@/lib/sheets-service";
 import { Directive, Incident, Proposal } from "@/lib/types";
 
-export const revalidate = 60; // 1 minute cache
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

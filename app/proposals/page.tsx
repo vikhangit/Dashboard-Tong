@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/expandable-text";
 import { Proposal } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 import { AppPagination } from "@/components/app-pagination";
 import { AttachmentList } from "@/components/attachment-list";
 import { ReloadButton } from "@/components/reload-button";
@@ -68,8 +69,12 @@ const statusConfig = {
 };
 
 export default function ProposalsPage() {
-  const [proposals, setProposals] = useState<Proposal[]>([]); // Initialize empty or load mock if needed, but useEffect will fetch
-  const [loading, setLoading] = useState(true);
+  const {
+    data: proposals,
+    isLoading: loading,
+    mutate: setProposals,
+  } = useCachedFetch<Proposal[]>("proposals_cache", "/api/proposals", []);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [filter, setFilter] = useState<"all" | keyof typeof statusConfig>(
@@ -122,19 +127,15 @@ export default function ProposalsPage() {
     }));
   }, [filter, proposals.length]);
 
-  useEffect(() => {
-    fetchProposals();
-  }, []);
-
   const fetchProposals = async () => {
     try {
       const res = await fetch("/api/proposals");
-      const data = await res.json();
-      setProposals(data);
+      if (res.ok) {
+        const data = await res.json();
+        setProposals(data);
+      }
     } catch (error) {
       console.error("Failed to fetch proposals", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -147,7 +148,10 @@ export default function ProposalsPage() {
       });
       if (res.ok) {
         const updated = await res.json();
-        setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        const updatedProposals = proposals.map((p) =>
+          p.id === id ? updated : p,
+        );
+        setProposals(updatedProposals);
         return true;
       }
     } catch (error) {

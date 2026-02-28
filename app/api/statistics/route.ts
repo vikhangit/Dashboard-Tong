@@ -3,8 +3,7 @@ import { sheetsService } from "@/lib/sheets-service";
 import axios from "axios";
 import { Statistics } from "@/lib/types";
 
-export const revalidate = 30;
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 const fetchWithTimeout = async (url: string, timeout = 5000) => {
   const controller = new AbortController();

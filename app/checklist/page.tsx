@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChecklistItem } from "@/lib/types";
 import { AppHeader } from "@/components/app-header";
 import { PageHeader } from "@/components/page-header";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 const getGroupStats = (items: ChecklistItem[]) => {
   const deadlines = items
@@ -66,42 +67,26 @@ const ORDERED_FIELDS = [
 ];
 
 export default function ChecklistPage() {
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: items, isLoading } = useCachedFetch<ChecklistItem[]>(
+    "checklist_cache",
+    "/api/checklist",
+    [],
+  );
+
   const [selectedStatus, setSelectedStatus] = useState<string>("Mới");
   const [selectedProject, setSelectedProject] = useState<string>("");
-
-  useEffect(() => {
-    fetchChecklist();
-  }, []);
-
-  const fetchChecklist = async () => {
-    try {
-      const response = await fetch("/api/checklist");
-      const result = await response.json();
-      if (result.data) {
-        setItems(result.data);
-      }
-    } catch (error) {
-      console.error("Error fetching checklist:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [hasInitializedStatus, setHasInitializedStatus] = useState(false);
 
   // Extract unique projects
-  const projects = useMemo(() => {
+  const projectStatuses = useMemo(() => {
     const uniqueProjects = Array.from(
       new Set(items.map((item) => item.project)),
     ).filter(Boolean);
-    const allProjects = uniqueProjects.sort();
-
-    if (selectedStatus === "all") return allProjects;
 
     const now = new Date();
-    return allProjects.filter((projectName) => {
+    return uniqueProjects.map((projectName) => {
       const projectItems = items.filter((i) => i.project === projectName);
-      if (projectItems.length === 0) return false;
+      if (projectItems.length === 0) return { projectName, status: "none" };
 
       const allCompleted = projectItems.every((i) => i.status === "completed");
 
@@ -121,9 +106,50 @@ export default function ChecklistPage() {
         }
       }
 
-      return status === selectedStatus;
+      return { projectName, status };
     });
-  }, [items, selectedStatus]);
+  }, [items]);
+
+  const projects = useMemo(() => {
+    const allProjects = projectStatuses
+      .map((p) => p.projectName)
+      .sort((a, b) => a.localeCompare(b));
+    if (selectedStatus === "all") return allProjects;
+    return projectStatuses
+      .filter((p) => p.status === selectedStatus)
+      .map((p) => p.projectName)
+      .sort((a, b) => a.localeCompare(b));
+  }, [projectStatuses, selectedStatus]);
+
+  const projectStatusCounts = useMemo(() => {
+    const counts = {
+      all: projectStatuses.length,
+      Mới: 0,
+      "Đang chuẩn bị": 0,
+      "Hoàn thành": 0,
+    };
+    projectStatuses.forEach((p) => {
+      if (p.status === "Mới") counts["Mới"]++;
+      if (p.status === "Đang chuẩn bị") counts["Đang chuẩn bị"]++;
+      if (p.status === "Hoàn thành") counts["Hoàn thành"]++;
+    });
+    return counts;
+  }, [projectStatuses]);
+
+  useEffect(() => {
+    if (!isLoading && items.length > 0 && !hasInitializedStatus) {
+      if (projectStatusCounts["Mới"] === 0 && selectedStatus === "Mới") {
+        setSelectedStatus("Đang chuẩn bị");
+      }
+      setHasInitializedStatus(true);
+    }
+  }, [
+    isLoading,
+    items,
+    projectStatusCounts,
+    hasInitializedStatus,
+    selectedStatus,
+  ]);
 
   // Set default project when loaded
   useEffect(() => {
@@ -226,7 +252,7 @@ export default function ChecklistPage() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             {/* Project Filter */}
-            <div className="flex items-center gap-3 bg-white p-2 pr-3 rounded-2xl border border-slate-400 flex-1 sm:flex-none">
+            <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex-1 sm:flex-none">
               <div className="bg-indigo-50 p-2 rounded-xl text-blue-600 hidden sm:block">
                 <FolderKanban className="size-5 shrink-0" />
               </div>
@@ -253,7 +279,7 @@ export default function ChecklistPage() {
                           : "text-slate-600 hover:bg-white hover:shadow-sm"
                       }`}
                     >
-                      Tất cả
+                      Tất cả ({projectStatusCounts.all})
                     </button>
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
@@ -268,7 +294,7 @@ export default function ChecklistPage() {
                           : "text-blue-600 hover:bg-blue-50"
                       }`}
                     >
-                      Mới
+                      Mới ({projectStatusCounts["Mới"]})
                     </button>
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
@@ -283,7 +309,7 @@ export default function ChecklistPage() {
                           : "text-amber-600 hover:bg-amber-50"
                       }`}
                     >
-                      Đang chuẩn bị
+                      Đang ({projectStatusCounts["Đang chuẩn bị"]})
                     </button>
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
@@ -298,7 +324,7 @@ export default function ChecklistPage() {
                           : "text-green-600 hover:bg-green-50"
                       }`}
                     >
-                      Xong
+                      Xong ({projectStatusCounts["Hoàn thành"]})
                     </button>
                   </div>
 
@@ -402,154 +428,161 @@ export default function ChecklistPage() {
             defaultValue={[]}
             className="space-y-2"
           >
-            {displayFields.map((field) => (
-              <AccordionItem
-                key={field}
-                value={field}
-                className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
-              >
-                <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
-                  <div className="flex flex-1 items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                      <span className="text-lg font-bold text-blue-900 uppercase tracking-tight">
-                        {field}
-                      </span>
-                    </div>
-
-                    {/* Group Stats */}
-                    {groupedItems[field]?.length > 0 ? (
-                      (() => {
-                        const { avgProgress, count, latestDeadline } =
-                          getGroupStats(groupedItems[field]);
-
-                        return (
-                          <div className="flex items-center gap-1 text-base font-medium text-slate-600">
-                            {/* Progress */}
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={
-                                  avgProgress === 100
-                                    ? "text-green-600"
-                                    : "text-blue-600"
-                                }
-                              >
-                                {avgProgress}%
-                              </span>
-                            </div>
-
-                            <span className="text-slate-400">/</span>
-
-                            {/* Count */}
-                            <div className="flex items-center gap-1 text-slate-800">
-                              <span>{count}</span>
-                            </div>
-
-                            <span className="text-slate-400">/</span>
-
-                            {/* Deadline */}
-                            <div className="flex items-center gap-1.5 text-red-600">
-                              {latestDeadline ? (
-                                <span>{format(latestDeadline, "dd/MM")}</span>
-                              ) : (
-                                <span>--/--</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <span className="text-sm text-slate-500 font-medium">
-                        0 việc
-                      </span>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-2 pt-0 bg-white">
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
-                    {groupedItems[field]?.length === 0 ? (
-                      <div className="col-span-full text-center py-8 text-muted-foreground">
-                        <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                        <p className="text-base font-medium">
-                          Chưa có công việc nào
-                        </p>
+            {isLoading && (!items || items.length === 0) ? (
+              <div className="text-center py-12 w-full col-span-full">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+              </div>
+            ) : (
+              displayFields.map((field) => (
+                <AccordionItem
+                  key={field}
+                  value={field}
+                  className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
+                >
+                  <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
+                    <div className="flex flex-1 items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                        <span className="text-lg font-bold text-blue-900 uppercase tracking-tight">
+                          {field}
+                        </span>
                       </div>
-                    ) : (
-                      groupedItems[field]?.map((item) => (
-                        <div
-                          key={item.id}
-                          className="group relative flex flex-col justify-between rounded-xl bg-gradient-to-br from-purple-50 to-blue-100  border-2 border-blue-300 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-200 p-3"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
-                              {item.task}
-                            </h4>
-                          </div>
 
-                          {/* Project Name (if viewing all) */}
-                          {selectedProject === "all" && (
-                            <div className="text-base text-blue-600 mb-2 font-medium flex items-center bg-blue-50 w-fit px-2 py-0.5 rounded-md">
-                              <FolderKanban className="h-3 w-3 mr-1.5" />
-                              {item.project}
-                            </div>
-                          )}
+                      {/* Group Stats */}
+                      {groupedItems[field]?.length > 0 ? (
+                        (() => {
+                          const { avgProgress, count, latestDeadline } =
+                            getGroupStats(groupedItems[field]);
 
-                          <div className="mt-auto">
-                            {/* Progress */}
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center text-base text-slate-600">
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                  <span className="text-base font-medium">
-                                    {format(
-                                      new Date(item.startDate),
-                                      "dd/MM/yy",
-                                    )}
-                                    {" - "}
-                                    <span
-                                      className={
-                                        item.deadline
-                                          ? "text-red-600"
-                                          : "text-slate-400"
-                                      }
-                                    >
-                                      {item.deadline
-                                        ? format(
-                                            new Date(item.deadline),
-                                            "dd/MM/yy",
-                                          )
-                                        : "..."}
-                                    </span>
-                                  </span>
-                                </div>
+                          return (
+                            <div className="flex items-center gap-1 text-base font-medium text-slate-600">
+                              {/* Progress */}
+                              <div className="flex items-center gap-2">
                                 <span
-                                  className={`font-bold text-base ${
-                                    item.progress === 100
+                                  className={
+                                    avgProgress === 100
                                       ? "text-green-600"
                                       : "text-blue-600"
-                                  }`}
+                                  }
                                 >
-                                  {item.progress}%
+                                  {avgProgress}%
                                 </span>
                               </div>
-                              <Progress
-                                value={item.progress}
-                                className="h-1.5 bg-slate-50"
-                                indicatorClassName={
-                                  item.progress === 100
-                                    ? "bg-green-500"
-                                    : "bg-blue-500"
-                                }
-                              />
+
+                              <span className="text-slate-400">/</span>
+
+                              {/* Count */}
+                              <div className="flex items-center gap-1 text-slate-800">
+                                <span>{count}</span>
+                              </div>
+
+                              <span className="text-slate-400">/</span>
+
+                              {/* Deadline */}
+                              <div className="flex items-center gap-1.5 text-red-600">
+                                {latestDeadline ? (
+                                  <span>{format(latestDeadline, "dd/MM")}</span>
+                                ) : (
+                                  <span>--/--</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-sm text-slate-500 font-medium">
+                          0 việc
+                        </span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-2 pt-0 bg-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
+                      {groupedItems[field]?.length === 0 ? (
+                        <div className="col-span-full text-center py-8 text-muted-foreground">
+                          <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                          <p className="text-base font-medium">
+                            Chưa có công việc nào
+                          </p>
+                        </div>
+                      ) : (
+                        groupedItems[field]?.map((item) => (
+                          <div
+                            key={item.id}
+                            className="group relative flex flex-col justify-between rounded-xl bg-gradient-to-br from-purple-50 to-blue-100  border-2 border-blue-300 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-200 p-3"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
+                                {item.task}
+                              </h4>
+                            </div>
+
+                            {/* Project Name (if viewing all) */}
+                            {selectedProject === "all" && (
+                              <div className="text-base text-blue-600 mb-2 font-medium flex items-center bg-blue-50 w-fit px-2 py-0.5 rounded-md">
+                                <FolderKanban className="h-3 w-3 mr-1.5" />
+                                {item.project}
+                              </div>
+                            )}
+
+                            <div className="mt-auto">
+                              {/* Progress */}
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center text-base text-slate-600">
+                                  <div className="flex items-center gap-1.5">
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-base font-medium">
+                                      {format(
+                                        new Date(item.startDate),
+                                        "dd/MM/yy",
+                                      )}
+                                      {" - "}
+                                      <span
+                                        className={
+                                          item.deadline
+                                            ? "text-red-600"
+                                            : "text-slate-400"
+                                        }
+                                      >
+                                        {item.deadline
+                                          ? format(
+                                              new Date(item.deadline),
+                                              "dd/MM/yy",
+                                            )
+                                          : "..."}
+                                      </span>
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`font-bold text-base ${
+                                      item.progress === 100
+                                        ? "text-green-600"
+                                        : "text-blue-600"
+                                    }`}
+                                  >
+                                    {item.progress}%
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={item.progress}
+                                  className="h-1.5 bg-slate-50"
+                                  indicatorClassName={
+                                    item.progress === 100
+                                      ? "bg-green-500"
+                                      : "bg-blue-500"
+                                  }
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                        ))
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))
+            )}
           </Accordion>
         )}
       </div>
