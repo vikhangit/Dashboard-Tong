@@ -29,6 +29,7 @@ import {
   formatFullDateTime,
 } from "@/lib/utils";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 import { AppPagination } from "@/components/app-pagination";
 import { ReloadButton } from "@/components/reload-button";
@@ -69,8 +70,12 @@ const statusConfig = {
 };
 
 export default function DirectivesPage() {
-  const [directives, setDirectives] = useState<Directive[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: directives,
+    isLoading: loading,
+    mutate: setDirectives,
+  } = useCachedFetch<Directive[]>("directives_cache", "/api/directives", []);
+
   const [filter, setFilter] = useState<"all" | Directive["status"]>("all");
   const [pagination, setPagination] = useState({
     page: 1,
@@ -125,14 +130,8 @@ export default function DirectivesPage() {
       setDirectives(parsedData);
     } catch (error) {
       console.error("[v0] Error fetching directives:", error);
-    } finally {
-      setLoading(false);
     }
   }
-
-  useEffect(() => {
-    fetchDirectives();
-  }, []);
 
   const handleAddDirective = async () => {
     if (!newDirective.content.trim()) return;
@@ -178,9 +177,10 @@ export default function DirectivesPage() {
 
   const handleMarkAsReadSuccess = (id: string) => {
     // Optimistic update
-    setDirectives((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, seen: true } : d)),
+    const updatedDirectives = directives.map((d) =>
+      d.id === id ? { ...d, seen: true } : d,
     );
+    setDirectives(updatedDirectives);
     // Then fetch to ensure data consistency
     fetchDirectives();
   };
@@ -293,7 +293,12 @@ export default function DirectivesPage() {
 
         {/* Directives List */}
         <div className="space-y-3">
-          {filteredDirectives.length === 0 ? (
+          {loading && directives.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+            </div>
+          ) : filteredDirectives.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
                 <FileText className="h-8 w-8 text-muted-foreground/50" />

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/expandable-text";
 import { Incident } from "@/lib/types";
 import { cn, formatDateTime, formatShortDateTime } from "@/lib/utils";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 import { AppPagination } from "@/components/app-pagination";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
@@ -64,8 +65,12 @@ const severityConfig = {
 };
 
 export default function IncidentsPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: incidents,
+    isLoading: loading,
+    mutate: setIncidents,
+  } = useCachedFetch<Incident[]>("incidents_cache", "/api/incidents", []);
+
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | keyof typeof statusConfig>(
     "all",
@@ -134,9 +139,10 @@ export default function IncidentsPage() {
 
       if (res.ok) {
         const updated = await res.json();
-        setIncidents((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, ...updated } : p)),
+        const updatedIncidents = incidents.map((p) =>
+          p.id === id ? { ...p, ...updated } : p,
         );
+        setIncidents(updatedIncidents);
         setEditingId(null);
         setEditContent("");
       } else {
@@ -161,15 +167,8 @@ export default function IncidentsPage() {
       setIncidents(parsedData);
     } catch (err) {
       console.error("Error loading incidents:", err);
-      setError("Không thể tải dữ liệu sự cố");
-    } finally {
-      setLoading(false);
     }
   }
-
-  useEffect(() => {
-    fetchIncidents();
-  }, []);
 
   if (loading) {
     return (

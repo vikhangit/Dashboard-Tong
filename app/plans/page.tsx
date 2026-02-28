@@ -12,7 +12,7 @@ import { Plan } from "@/lib/types";
 import { FileIconComponent } from "@/components/file-icon";
 import { ExpandableText } from "@/components/expandable-text";
 import { isImageUrl } from "@/lib/file-utils";
-import axios from "axios";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 import {
   Calendar,
   Search,
@@ -66,9 +66,13 @@ const statusConfig: Record<
 
 export default function PlansPage() {
   const router = useRouter();
-  const [allPlans, setAllPlans] = useState<Plan[]>([]);
+  const {
+    data: allPlans,
+    isLoading: loading,
+    mutate: setAllPlans,
+  } = useCachedFetch<Plan[]>("plans_cache", "/api/plans", []);
+
   const [plans, setPlans] = useState<Plan[]>([]); // Displayed plans (paginated)
-  const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -86,66 +90,15 @@ export default function PlansPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Initial fetch of all plans
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  // Filter and pagination logic
-  useEffect(() => {
-    let result = [...allPlans];
-
-    // Filter by status
-    if (statusFilter !== "all") {
-      result = result.filter((plan) => plan.status === statusFilter);
-    }
-
-    // Filter by search
-    if (debouncedSearch) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.description?.toLowerCase().includes(query),
-      );
-    }
-
-    // Update total for pagination
-    const total = result.length;
-    const totalPages = Math.ceil(total / pagination.limit);
-
-    // Slice for pagination
-    const startIndex = (pagination.page - 1) * pagination.limit;
-    const endIndex = startIndex + pagination.limit;
-    const paginatedPlans = result.slice(startIndex, endIndex);
-
-    setPlans(paginatedPlans);
-    setPagination((prev) => ({
-      ...prev,
-      total,
-      total_pages: totalPages,
-      // Reset to page 1 if current page is out of bounds (except when loading/initial)
-      page: prev.page > totalPages && totalPages > 0 ? 1 : prev.page,
-    }));
-  }, [
-    allPlans,
-    statusFilter,
-    debouncedSearch,
-    pagination.page,
-    pagination.limit,
-  ]);
-
-  const fetchPlans = async (showLoading: boolean = true) => {
+  const fetchPlans = async () => {
     try {
-      if (showLoading) setLoading(true);
-      const response = await axios.get("/api/plans");
-      if (response.data && response.data.success) {
-        setAllPlans(response.data.data);
+      const response = await fetch("/api/plans");
+      const result = await response.json();
+      if (result && result.success) {
+        setAllPlans(result.data);
       }
     } catch (error) {
       console.error("Error fetching plans:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -155,7 +108,7 @@ export default function PlansPage() {
         title="Kế hoạch"
         icon={<Calendar className="size-6 text-blue-600" />}
       >
-        <ReloadButton onReload={() => fetchPlans(false)} />
+        <ReloadButton onReload={() => fetchPlans()} />
       </PageHeader>
 
       <div className="container mx-auto px-4 py-6 max-w-3xl">
@@ -192,7 +145,7 @@ export default function PlansPage() {
 
         {/* Plans List */}
         <div className="space-y-4">
-          {loading ? (
+          {loading && (!allPlans || allPlans.length === 0) ? (
             <div className="text-center py-12">
               <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Đang tải dữ liệu...</p>

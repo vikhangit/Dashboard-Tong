@@ -30,9 +30,19 @@ import { ToolsDialog } from "@/components/tools-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Statistics } from "@/lib/types";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 export default function HomePage() {
-  const [statistics, setStatistics] = useState<Statistics | null>(null);
+  const {
+    data: statistics,
+    isLoading: loadingStats,
+    mutate: setStatistics,
+  } = useCachedFetch<Statistics | null>(
+    "statistics_cache",
+    "/api/statistics",
+    null,
+  );
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -42,6 +52,7 @@ export default function HomePage() {
   const [lastTranscript, setLastTranscript] = useState<string>("");
   const [showDirectiveInput, setShowDirectiveInput] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -57,28 +68,13 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    fetchStatistics();
-  }, []);
-
-  const fetchStatistics = async () => {
-    try {
-      const response = await fetch("/api/statistics");
-      const result = await response.json();
-      const stats = result.data as Statistics;
-      setStatistics(stats);
-
-      if (stats) {
-        // Calculate notification count (in_progress tasks + pending directives)
-        const activeCount =
-          (stats.tasks?.in_progress || 0) + (stats.directives?.pending || 0);
-        setNotificationCount(activeCount);
-      }
-    } catch (error) {
-      console.error("[v0] Error fetching statistics:", error);
+    if (statistics) {
+      const activeCount =
+        (statistics.tasks?.in_progress || 0) +
+        (statistics.directives?.pending || 0);
+      setNotificationCount(activeCount);
     }
-  };
-
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  }, [statistics]);
 
   const handleRecordingComplete = async (
     transcript: string,
@@ -154,7 +150,7 @@ export default function HomePage() {
         setTimeout(() => setShowSuccess(false), 3000);
         setLastTranscript(""); // Clear after sending
         setShowDirectiveInput(false);
-        fetchStatistics();
+        setStatistics((prev) => prev); // trigger a re-mutate if needed, handled passively by SWR generally
       }
     } catch (error) {
       console.error("Error sending directive:", error);
@@ -175,12 +171,17 @@ export default function HomePage() {
     }
   };
 
-  if (!statistics) {
+  if (loadingStats && !statistics) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-holographic">
         <div className="h-16 w-16 rounded-full border-4 border-primary border-t-transparent animate-spin" />
       </div>
     );
+  }
+
+  if (!statistics) {
+    // If stats are somehow null after loading
+    return null;
   }
 
   // Mobile Minimalist View

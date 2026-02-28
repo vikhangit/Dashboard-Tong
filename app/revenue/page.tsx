@@ -62,12 +62,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 export default function RevenuePage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Revenue[]>([]);
-
-  // Filters
   const [timeFilter, setTimeFilter] = useState<
     "day" | "week" | "month" | "year"
   >("month");
@@ -75,32 +72,23 @@ export default function RevenuePage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null); // null = All
   const [searchProject, setSearchProject] = useState("");
   const [showDetails, setShowDetails] = useState(false);
+  const { data: rawData, isLoading: loading } = useCachedFetch<any[]>(
+    "revenue_cache",
+    "/api/revenue",
+    [],
+  );
 
-  useEffect(() => {
-    fetchRevenues();
-  }, []);
+  // Parse dates correctly from cached/fetched raw data
+  const data: Revenue[] = useMemo(() => {
+    if (!rawData || !Array.isArray(rawData)) return [];
+    return rawData.map((item: any) => ({
+      ...item,
+      date: new Date(item.date),
+      createdAt: new Date(item.createdAt),
+    }));
+  }, [rawData]);
 
-  const fetchRevenues = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/revenue");
-      const result = await res.json();
-      if (result.success) {
-        const parsedData = result.data.map((item: any) => ({
-          ...item,
-          date: new Date(item.date),
-          createdAt: new Date(item.createdAt),
-        }));
-        setData(parsedData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch revenue data", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- Hero Section Stats: Dynamic based on filters ---
+  // Filters
   const heroStats = useMemo(() => {
     let currentStart, currentEnd;
     let prevStart, prevEnd;
@@ -462,6 +450,14 @@ export default function RevenuePage() {
       return format(selectedDate, "'Tháng' MM, yyyy", { locale: vi });
     return format(selectedDate, "'Năm' yyyy", { locale: vi });
   };
+
+  if (loading && (!data || data.length === 0)) {
+    return (
+      <div className="min-h-screen gradient-holographic flex justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-holographic flex flex-col">

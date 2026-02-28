@@ -61,8 +61,11 @@ class SheetsService {
     this.sheets = null;
   }
 
+  private initializingPromise: Promise<any> | null = null;
+
   private async getSheetsClient() {
     if (this.sheets) return this.sheets;
+    if (this.initializingPromise) return this.initializingPromise;
 
     if (!this.config.clientEmail || !this.config.privateKey) {
       console.warn("[Sheets] Missing credentials in environment variables");
@@ -70,21 +73,30 @@ class SheetsService {
       return null;
     }
 
-    try {
-      this.auth = new google.auth.GoogleAuth({
-        credentials: {
-          client_email: this.config.clientEmail,
-          private_key: this.config.privateKey,
-        },
-        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-      });
+    this.initializingPromise = (async () => {
+      try {
+        this.auth = new google.auth.GoogleAuth({
+          credentials: {
+            client_email: this.config.clientEmail,
+            private_key: this.config.privateKey,
+          },
+          scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+        });
 
-      this.sheets = google.sheets({ version: "v4", auth: this.auth });
-      return this.sheets;
-    } catch (error) {
-      console.error("[Sheets] Error initializing Google Sheets client:", error);
-      throw error;
-    }
+        this.sheets = google.sheets({ version: "v4", auth: this.auth });
+        return this.sheets;
+      } catch (error) {
+        console.error(
+          "[Sheets] Error initializing Google Sheets client:",
+          error,
+        );
+        throw error;
+      } finally {
+        this.initializingPromise = null;
+      }
+    })();
+
+    return this.initializingPromise;
   }
 
   async testConnection(): Promise<boolean> {
