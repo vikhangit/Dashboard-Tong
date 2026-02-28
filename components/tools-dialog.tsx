@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tool, ApiResponse } from "@/lib/types"; // Verify ApiResponse export
+import { Tool } from "@/lib/types"; // Verify ApiResponse export
 import { Loader2 } from "lucide-react";
-import axios from "axios";
+import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 interface ToolsDialogProps {
   open: boolean;
@@ -15,28 +14,13 @@ interface ToolsDialogProps {
 }
 
 export function ToolsDialog({ open, onOpenChange }: ToolsDialogProps) {
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useCachedFetch<{ rows: Tool[] }>(
+    "tools-cache",
+    "/api/tools",
+    { rows: [] },
+  );
 
-  useEffect(() => {
-    const fetchTools = async () => {
-      try {
-        if (open) {
-          setLoading(true);
-          const response = await axios.get<ApiResponse<Tool>>("/api/tools");
-          if (response.data.success) {
-            setTools(response.data.data.rows);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch tools:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTools();
-  }, [open]);
+  const tools = data?.rows || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,7 +30,7 @@ export function ToolsDialog({ open, onOpenChange }: ToolsDialogProps) {
             Công cụ & Tiện ích
           </DialogTitle>
         </DialogHeader>
-        {loading ? (
+        {isLoading && tools.length === 0 ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -74,7 +58,7 @@ export function ToolsDialog({ open, onOpenChange }: ToolsDialogProps) {
                 </div>
               </a>
             ))}
-            {tools.length === 0 && (
+            {tools.length === 0 && !isLoading && (
               <div className="col-span-2 text-center text-muted-foreground">
                 Không có công cụ nào.
               </div>

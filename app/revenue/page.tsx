@@ -451,14 +451,6 @@ export default function RevenuePage() {
     return format(selectedDate, "'Năm' yyyy", { locale: vi });
   };
 
-  if (loading && (!data || data.length === 0)) {
-    return (
-      <div className="min-h-screen gradient-holographic flex justify-center items-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen gradient-holographic flex flex-col">
       <PageHeader
@@ -537,7 +529,11 @@ export default function RevenuePage() {
             </div>
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
               <span className="text-2xl sm:text-lg font-bold text-foreground">
-                {formatCurrency(heroStats.currentRevenue)}
+                {loading && data.length === 0 ? (
+                  <Loader2 className="h-6 w-6 animate-spin inline-block text-muted-foreground" />
+                ) : (
+                  formatCurrency(heroStats.currentRevenue)
+                )}
               </span>
               <div
                 className={cn(
@@ -688,7 +684,13 @@ export default function RevenuePage() {
                     </button>
                   ))}
 
-                  {projectStats.length === 0 && (
+                  {loading && data.length === 0 && (
+                    <div className="px-4 py-8 flex justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  )}
+
+                  {!loading && projectStats.length === 0 && (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Không tìm thấy dự án
                     </div>
