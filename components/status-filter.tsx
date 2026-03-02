@@ -15,6 +15,7 @@ interface StatusFilterProps {
   counts?: Record<string, number>;
   totalCount?: number;
   className?: string;
+  order?: string[];
 }
 
 export function StatusFilter({
@@ -24,6 +25,7 @@ export function StatusFilter({
   counts = {},
   totalCount,
   className,
+  order,
 }: StatusFilterProps) {
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
@@ -33,7 +35,7 @@ export function StatusFilter({
         className="rounded-full"
         size="sm"
       >
-        Tất cả
+        All
         {typeof totalCount === "number" && (
           <span
             className={cn(
@@ -45,7 +47,9 @@ export function StatusFilter({
           </span>
         )}
       </Button>
-      {Object.entries(config).map(([key, item]) => {
+      {(order || Object.keys(config)).map((key) => {
+        const item = config[key];
+        if (!item) return null;
         const count = counts[key] || 0;
         const isActive = filter === key;
 
