@@ -34,6 +34,58 @@ export interface Task {
   };
 }
 
+export interface TaskDetailSubtask {
+  id: number;
+  name: string;
+  description: string | null;
+  target_value: number;
+  value: number;
+  process: number;
+  status: {
+    id: number;
+    name: string;
+  };
+}
+
+export interface TaskDetailEmployeeAssignment {
+  id: number;
+  completed_date: string | null;
+  prove: string | null;
+  checked: boolean;
+  process: number;
+  employee: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  };
+  status: {
+    id: number;
+    name: string;
+  };
+  subtasks: TaskDetailSubtask[] | null;
+}
+
+export interface TaskDetail extends Task {
+  description: string | null;
+  type: {
+    id: number;
+    name: string;
+  };
+  priority: {
+    id: number;
+    name: string;
+  };
+  target_type: {
+    id: number;
+    name: string;
+  };
+  kpi_item: {
+    id: number;
+    name: string;
+  } | null;
+  employee_assignments: TaskDetailEmployeeAssignment[];
+}
+
 export interface ProjectMember {
   id: number;
   name: string;

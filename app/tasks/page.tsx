@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Briefcase, Search, Calendar, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -118,17 +119,17 @@ export default function TasksPage() {
     { label: string; color: string; textColor: string; icon?: any }
   > = {
     "2": {
-      label: "Đang thực hiện",
+      label: "Đang TH",
       color: "bg-yellow-500",
       textColor: "text-yellow-700",
     },
     "3": {
-      label: "Tạm dừng",
+      label: "T.Dừng",
       color: "bg-gray-500",
       textColor: "text-gray-700",
     },
     "4": {
-      label: "Hoàn thành",
+      label: "H.Thành",
       color: "bg-green-600",
       textColor: "text-green-700",
     },
@@ -167,7 +168,7 @@ export default function TasksPage() {
         <div className="mb-4 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600 z-10" />
           <Input
-            placeholder="Tìm kiếm công việc..."
+            placeholder="Tìm nhân sự, công việc..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-white backdrop-blur-sm border-muted/40"
@@ -181,6 +182,7 @@ export default function TasksPage() {
             filter={statusFilter}
             onFilterChange={setStatusFilter}
             config={statusConfig}
+            order={["4", "5", "2", "3"]}
             totalCount={allTasks.length}
             counts={allTasks.reduce(
               (acc, task) => {
@@ -210,7 +212,7 @@ export default function TasksPage() {
                   className="rounded-t-sm rounded-b-none py-3 border-b-2 border-gray-300 last:border-0 cursor-pointer"
                 >
                   <div className="whitespace-normal break-words text-left max-w-[calc(100vw-4rem)] sm:max-w-xs">
-                    Tất cả dự án
+                    Dự án
                   </div>
                 </SelectItem>
                 {uniqueProjects.map((project) => (
@@ -242,7 +244,7 @@ export default function TasksPage() {
                   className="rounded-t-sm rounded-b-none py-3 border-b-2 border-gray-300 last:border-0 cursor-pointer"
                 >
                   <div className="whitespace-normal break-words text-left max-w-[calc(100vw-4rem)] sm:max-w-xs">
-                    Tất cả nhân sự
+                    Người giao
                   </div>
                 </SelectItem>
                 {uniqueAssignees.map((assignee) => (
@@ -286,9 +288,10 @@ export default function TasksPage() {
               };
 
               return (
-                <div
+                <Link
+                  href={`/tasks/${task.id}`}
                   key={task.id}
-                  className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md"
+                  className="block group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md"
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
@@ -308,11 +311,11 @@ export default function TasksPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-medium text-foreground leading-snug mb-3 line-clamp-2">
+                    <h3 className="text-lg font-medium text-foreground leading-snug mb-1 line-clamp-2">
                       {task.name}
                     </h3>
 
-                    <div className="flex flex-col gap-2 text-base mb-3">
+                    <div className="flex flex-col gap-0 text-base">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4 text-blue-500 shrink-0" />
                         <span className="truncate">
@@ -335,7 +338,7 @@ export default function TasksPage() {
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2">
                       <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden flex-1">
                         <div
                           className={`h-full ${Number(task.process) === 100 ? "bg-green-500" : "bg-primary"}`}
@@ -349,14 +352,14 @@ export default function TasksPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/80 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between pt-2 mt-2 border-t border-border/80 text-xs text-muted-foreground">
                       <span>
                         Tạo lúc:{" "}
                         {format(new Date(task.created_at), "HH:mm dd/MM/yyyy")}
                       </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })
           )}
