@@ -21,6 +21,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
 # ?? B?T BU?C C?I PNPM L?I
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
