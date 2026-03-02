@@ -5,12 +5,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      
+
+    network_mode: "host"
+
     env_file:
       - .env
-    
-    ports:
-      - "127.0.0.1:3018:3018"
+
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+      - GODEBUG=netdns=go
 
     restart: unless-stopped
 
@@ -19,9 +22,3 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
