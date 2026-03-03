@@ -65,6 +65,38 @@ export interface TaskDetailEmployeeAssignment {
   subtasks: TaskDetailSubtask[] | null;
 }
 
+export interface EmployeeTask {
+  id: string;
+  completed_date: string | null;
+  prove: string | null;
+  checked: boolean;
+  value: string;
+  target_value: string;
+  process: string;
+  status: {
+    id: number;
+    name: string;
+  };
+  task: {
+    id: number;
+    name: string;
+    description: string | null;
+    date_start?: string;
+    date_end?: string;
+  };
+  project?: {
+    id: number;
+    name: string;
+  };
+  created_at?: string;
+  employee: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  };
+  subtasks: TaskDetailSubtask[];
+}
+
 export interface TaskDetail extends Task {
   description: string | null;
   type: {

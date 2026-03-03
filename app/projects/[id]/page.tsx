@@ -107,7 +107,7 @@ export default function ProjectDetailPage() {
     try {
       setLoading(true);
       const response = await axios.get<{ data: Project }>(
-        `https://api.apecglobal.net/api/v1/projects/outside`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/projects/outside`,
         {
           params: { id },
         },
