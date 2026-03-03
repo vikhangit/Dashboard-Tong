@@ -20,6 +20,9 @@ RUN pnpm build
 FROM node:22-alpine AS runner
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 ENV NODE_ENV=production
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
