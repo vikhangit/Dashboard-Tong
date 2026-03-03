@@ -9,6 +9,10 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NODE_ENV=production
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -17,11 +21,6 @@ RUN pnpm build
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
-ENV NODE_ENV=production
-ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
