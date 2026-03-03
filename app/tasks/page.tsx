@@ -116,7 +116,7 @@ function SharedTaskCard({
           </span>
         </div>
 
-        <h3 className="text-lg font-medium text-foreground leading-snug mb-1 line-clamp-2">
+        <h3 className="text-lg font-medium text-foreground leading-snug mb-2 line-clamp-2">
           {taskName}
         </h3>
 
@@ -306,7 +306,6 @@ function SharedTasksTab<
   }, [filteredItems, currentPage]);
 
   const fetchItems = async (showLoading = true) => {
-    console.log("==== api url: ", `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`);
     try {
       if (showLoading) setLoading(true);
       const res = await axios.get<ApiResponse<T>>(

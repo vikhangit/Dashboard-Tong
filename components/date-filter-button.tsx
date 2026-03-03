@@ -73,7 +73,7 @@ export function DateFilterButton({
         <Button
           size="icon"
           className={cn(
-            "fixed bottom-20 right-4 z-50 size-14 rounded-full shadow-lg transition-all duration-300",
+            "fixed bottom-20 right-4 z-50 size-11 rounded-full shadow-lg transition-all duration-300",
             isActive
               ? "bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/30 ring-2 ring-blue-400/50"
               : "bg-gradient-to-br from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white shadow-slate-500/20",
@@ -93,18 +93,18 @@ export function DateFilterButton({
         side="top"
         align="end"
         sideOffset={12}
-        className="w-auto p-0 rounded-xl border-slate-200 shadow-2xl overflow-hidden"
+        className="w-auto p-0 rounded-2xl border-slate-200/80 shadow-2xl overflow-hidden"
       >
         {/* Header with mode toggle */}
-        <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3">
-          <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-0.5">
+        <div className="flex items-center justify-center bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
+          <div className="flex items-center gap-1.5 bg-slate-700/50 rounded-xl p-1">
             <button
               onClick={() => setMode("day")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
                 mode === "day"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-300 hover:text-white",
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
+                  : "text-slate-300 hover:text-white hover:bg-slate-600/50",
               )}
             >
               Theo ngày
@@ -112,49 +112,47 @@ export function DateFilterButton({
             <button
               onClick={() => setMode("month")}
               className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
                 mode === "month"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-300 hover:text-white",
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
+                  : "text-slate-300 hover:text-white hover:bg-slate-600/50",
               )}
             >
               Theo tháng
             </button>
           </div>
-          {isActive && (
-            <button
-              onClick={handleClear}
-              className="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-slate-700"
-              title="Xóa bộ lọc"
-            >
-              <X className="size-4" />
-            </button>
-          )}
         </div>
 
         {/* Active filter indicator */}
         {isActive && (
-          <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
-            <CalendarClock className="size-4 text-blue-600" />
-            <span className="text-sm text-blue-700 font-medium">
+          <div className="px-5 py-2.5 bg-blue-50/80 border-b border-blue-100 flex items-center gap-2.5">
+            <CalendarClock className="size-4 text-blue-500" />
+            <span className="text-base text-blue-700 font-medium">
               Đang lọc: {label}
             </span>
+            <button
+              onClick={handleClear}
+              className="text-slate-600 hover:text-white transition-colors rounded-lg hover:bg-slate-700/80 ml-3"
+              title="Xóa bộ lọc"
+            >
+              <X className="size-6" />
+            </button>
           </div>
         )}
 
         {/* Content */}
         {mode === "day" ? (
-          <div className="p-2">
+          <div className="p-4 [--cell-size:--spacing(10)]">
             <Calendar
               mode="single"
               selected={value?.mode === "day" ? value.date : undefined}
               onSelect={handleDaySelect}
               locale={vi}
-              className="rounded-lg"
+              className="rounded-xl !p-0"
             />
           </div>
         ) : (
-          <div className="p-4">
+          <div className="p-5">
             {/* Year navigation */}
             <YearMonthPicker
               selectedDate={value?.mode === "month" ? value.date : undefined}
@@ -181,18 +179,18 @@ function YearMonthPicker({
   );
 
   const monthNames = [
-    "Th.1",
-    "Th.2",
-    "Th.3",
-    "Th.4",
-    "Th.5",
-    "Th.6",
-    "Th.7",
-    "Th.8",
-    "Th.9",
-    "Th.10",
-    "Th.11",
-    "Th.12",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
   ];
 
   const isSelectedMonth = (monthIndex: number) =>
@@ -208,13 +206,13 @@ function YearMonthPicker({
   return (
     <div className="w-[260px]">
       {/* Year selector */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => setYear((y) => y - 1)}
-          className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
+          className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
         >
           <svg
-            className="size-4"
+            className="size-7"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -227,13 +225,13 @@ function YearMonthPicker({
             />
           </svg>
         </button>
-        <span className="text-sm font-semibold text-slate-800">{year}</span>
+        <span className="text-lg font-semibold text-blue-600">{year}</span>
         <button
           onClick={() => setYear((y) => y + 1)}
-          className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
+          className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
         >
           <svg
-            className="size-4"
+            className="size-7"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -249,15 +247,15 @@ function YearMonthPicker({
       </div>
 
       {/* Month grid */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1">
         {monthNames.map((name, index) => (
           <button
             key={index}
             onClick={() => onSelect(new Date(year, index, 1))}
             className={cn(
-              "py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200",
+              "py-1 px-1 rounded-xl text-lg font-medium transition-all duration-200",
               isSelectedMonth(index)
-                ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
                 : isCurrentMonth(index)
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                   : "text-slate-700 hover:bg-slate-100",
