@@ -40,10 +40,10 @@ export async function GET() {
       safeSheetCall(() => sheetsService.getProposals(), []),
       safeSheetCall(() => sheetsService.getPlans(), []),
       fetchWithTimeout(
-        "https://api.apecglobal.net/api/v1/tasks/outside?limit=100",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tasks/outside?limit=100`,
       ),
       fetchWithTimeout(
-        "https://api.apecglobal.net/api/v1/projects/outside?limit=100",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/projects/outside?limit=100`,
       ),
       safeSheetCall(() => sheetsService.getRevenues(), []),
     ]);

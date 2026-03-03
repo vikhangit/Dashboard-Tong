@@ -192,7 +192,7 @@ export default function ProjectsPage() {
       if (showLoading) setLoading(true);
 
       const response = await axios.get<ProjectApiResponse>(
-        "https://api.apecglobal.net/api/v1/projects/outside",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/projects/outside`,
         {
           params: {
             limit: 1000, // Fetch big limit to get all
@@ -319,7 +319,7 @@ export default function ProjectsPage() {
                         {config.label}
                       </Badge>
                       <span className="text-xs text-blue-500 font-medium">
-                        Xem chi tiết 
+                        Xem chi tiết
                       </span>
                     </div>
 

@@ -99,9 +99,28 @@ export default function TaskDetailPage() {
   const taskId = params?.id as string;
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedAssignments, setExpandedAssignments] = useState<
-    Record<string, boolean>
-  >({});
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      setEmployeeId(urlParams.get("employeeId"));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (task && employeeId && !expandedAssignmentId) {
+      const assignment = task.employee_assignments?.find(
+        (a) => String(a.employee?.id) === employeeId,
+      );
+      if (assignment?.subtasks && assignment.subtasks.length > 0) {
+        setExpandedAssignmentId(String(assignment.id));
+      }
+    }
+  }, [task, employeeId, expandedAssignmentId]);
 
   const fetchTaskDetails = async (showLoading: boolean = true) => {
     if (!taskId) return;
@@ -112,7 +131,9 @@ export default function TaskDetailPage() {
         message: string;
         statusCode: number;
         data: TaskDetail;
-      }>(`https://api.apecglobal.net/api/v1/tasks/outside?id=${taskId}`);
+      }>(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tasks/outside?id=${taskId}`,
+      );
 
       if (response.data.success) {
         setTask(response.data.data);
@@ -162,6 +183,12 @@ export default function TaskDetailPage() {
   };
   const StatusIcon = currentStatusConfig.icon;
 
+  const visibleAssignments =
+    task.employee_assignments?.filter((assignment) => {
+      if (!employeeId) return true;
+      return String(assignment.employee?.id) === employeeId;
+    }) || [];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -175,8 +202,8 @@ export default function TaskDetailPage() {
 
       <div className="container mx-auto px-2 md:px-4 py-2 md:py-4 max-w-4xl space-y-2 md:space-y-4">
         {/* Main Task Info Card */}
-        <Card className="overflow-hidden border-none bg-white/80 pt-4 md:pt-5 pb-2 gap-2 md:gap-3">
-          <CardHeader className="px-4 pb-0 md:pb-0">
+        <Card className="overflow-hidden border-none bg-white/80 pt-4 md:pt-5 pb-0 gap-2 md:gap-3 shadow-none">
+          <CardHeader className="px-2 pb-0 md:pb-0">
             <div className="flex items-start">
               <div className="flex-1">
                 <div className="flex justify-between items-center gap-2 mb-2 md:mb-3">
@@ -197,8 +224,8 @@ export default function TaskDetailPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 md:space-y-4 px-3 md:px-4 pb-3 md:pb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 bg-muted/30 p-2 md:p-3 rounded-xl border border-muted/50">
+          <CardContent className="space-y-3 md:space-y-4 px-1 md:px-4 pb-3 md:pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 p-2 md:p-3 rounded-xl border shadow-sm bg-card/50">
               <div className="space-y-2 md:space-y-3">
                 <InfoItem
                   icon={<Briefcase className="h-5 w-5 text-blue-600" />}
@@ -253,7 +280,7 @@ export default function TaskDetailPage() {
             </div>
 
             {/* Overall Progress */}
-            <div className="space-y-1.5 bg-card border rounded-xl p-3 md:p-4 shadow-sm">
+            <div className="space-y-1.5 bg-card/50 border rounded-xl p-3 md:p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   <ListTodo className="w-4 h-4 text-primary" />
@@ -284,14 +311,14 @@ export default function TaskDetailPage() {
         </Card>
 
         {/* Assignments Section */}
-        <div className="space-y-2 md:space-y-3 pt-2">
-          <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 pl-1">
-            <User className="h-5 w-5 text-primary" />
-            Nhân sự tham gia ({task.employee_assignments?.length || 0})
+        <div className="space-y-2 md:space-y-3">
+          <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 pl-1 py-2">
+            <User className="size-6 text-primary" />
+            Nhân sự tham gia ({visibleAssignments.length})
           </h2>
 
           <div className="grid grid-cols-1 gap-2 md:gap-3">
-            {task.employee_assignments?.map((assignment) => {
+            {visibleAssignments.map((assignment) => {
               const hasSubtasks =
                 assignment.subtasks && assignment.subtasks.length > 0;
 
@@ -308,10 +335,11 @@ export default function TaskDetailPage() {
                     }`}
                     onClick={() => {
                       if (hasSubtasks) {
-                        setExpandedAssignments((prev) => ({
-                          ...prev,
-                          [String(assignment.id)]: !prev[String(assignment.id)],
-                        }));
+                        setExpandedAssignmentId((prev) =>
+                          prev === String(assignment.id)
+                            ? null
+                            : String(assignment.id),
+                        );
                       }
                     }}
                   >
@@ -367,10 +395,10 @@ export default function TaskDetailPage() {
                     {Boolean(
                       assignment.completed_date || assignment.checked,
                     ) && (
-                      <div className="flex flex-row md:flex-nowrap items-center gap-3 text-base text-muted-foreground md:border-l md:pl-5 md:ml-2 w-full md:w-auto pt-2 lg:pt-0 border-t md:border-t-0 mt-1 md:mt-0">
+                      <div className="flex flex-row md:flex-nowrap items-center gap-3 text-base text-slate-700 md:border-l md:pl-5 md:ml-2 w-full md:w-auto pt-1 lg:pt-0 border-t md:border-t-0">
                         {assignment.completed_date && (
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
                             Hoàn thành:{" "}
                             {format(
                               new Date(assignment.completed_date),
@@ -392,7 +420,7 @@ export default function TaskDetailPage() {
 
                   {/* Subtasks */}
                   {hasSubtasks &&
-                    expandedAssignments[String(assignment.id)] && (
+                    expandedAssignmentId === String(assignment.id) && (
                       <div className="bg-white border-t border-green-700 p-4 animate-in slide-in-from-top-2 duration-200 -mt-7">
                         <div className="divide-y divide-slate-500">
                           {assignment.subtasks!.map((subtask) => (
@@ -400,7 +428,7 @@ export default function TaskDetailPage() {
                               key={subtask.id}
                               className="py-3 hover:bg-muted/10 transition-colors first:pt-0 last:pb-0"
                             >
-                              <div className="flex justify-between items-center gap-4 mb-2">
+                              <div className="flex justify-between items-center gap-4 mb-1">
                                 <Badge
                                   variant="secondary"
                                   className={`text-sm px-2.5 py-0.5 border-0 shrink-0 text-white ${
@@ -455,8 +483,7 @@ export default function TaskDetailPage() {
               );
             })}
 
-            {(!task.employee_assignments ||
-              task.employee_assignments.length === 0) && (
+            {(!visibleAssignments || visibleAssignments.length === 0) && (
               <div className="text-center py-6 md:py-8 bg-white/50 rounded-xl border border-dashed">
                 <User className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
