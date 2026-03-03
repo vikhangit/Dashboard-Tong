@@ -17,6 +17,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppPagination } from "@/components/app-pagination";
 import { StatusFilter } from "@/components/status-filter";
+import {
+  DateFilterButton,
+  DateFilterValue,
+} from "@/components/date-filter-button";
 import axios from "axios";
 import { Task, EmployeeTask, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
@@ -107,7 +111,7 @@ function SharedTaskCard({
               </Badge>
             )}
           </div>
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             # {taskId}
           </span>
         </div>
@@ -116,7 +120,7 @@ function SharedTaskCard({
           {taskName}
         </h3>
 
-        <div className="flex flex-col gap-0 text-base">
+        <div className="flex flex-col gap-0 text-base border-t border-border/80 pt-2">
           <div className="flex items-center gap-2">
             <Briefcase className="size-5 text-blue-500 shrink-0" />
             <span className="truncate">{projectName || "Chưa có dự án"}</span>
@@ -219,6 +223,7 @@ interface SharedTasksTabProps<T> {
   getAssignee: (
     item: T,
   ) => { id: number | string; name: string } | null | undefined;
+  getCreatedAt: (item: T) => string | undefined;
   assigneeRoleLabel: string;
   assigneeRolePlaceholder: string;
 }
@@ -233,6 +238,7 @@ function SharedTasksTab<
   endpoint,
   renderItem,
   getAssignee,
+  getCreatedAt,
   assigneeRoleLabel,
   assigneeRolePlaceholder,
 }: SharedTasksTabProps<T>) {
@@ -247,6 +253,7 @@ function SharedTasksTab<
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -269,10 +276,29 @@ function SharedTasksTab<
       filtered = filtered.filter(
         (t) => String(getAssignee(t)?.id) === assigneeFilter,
       );
+    if (dateFilter) {
+      filtered = filtered.filter((t) => {
+        const createdAt = getCreatedAt(t);
+        if (!createdAt) return false;
+        const itemDate = new Date(createdAt);
+        if (dateFilter.mode === "day") {
+          return (
+            itemDate.getFullYear() === dateFilter.date.getFullYear() &&
+            itemDate.getMonth() === dateFilter.date.getMonth() &&
+            itemDate.getDate() === dateFilter.date.getDate()
+          );
+        }
+        // month mode
+        return (
+          itemDate.getFullYear() === dateFilter.date.getFullYear() &&
+          itemDate.getMonth() === dateFilter.date.getMonth()
+        );
+      });
+    }
 
     setFilteredItems(filtered);
     setCurrentPage(1);
-  }, [allItems, statusFilter, projectFilter, assigneeFilter]);
+  }, [allItems, statusFilter, projectFilter, assigneeFilter, dateFilter]);
 
   useEffect(() => {
     const start = (currentPage - 1) * limit;
@@ -280,6 +306,7 @@ function SharedTasksTab<
   }, [filteredItems, currentPage]);
 
   const fetchItems = async (showLoading = true) => {
+    console.log("==== api url: ", `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`);
     try {
       if (showLoading) setLoading(true);
       const res = await axios.get<ApiResponse<T>>(
@@ -334,7 +361,7 @@ function SharedTasksTab<
           filter={statusFilter}
           onFilterChange={setStatusFilter}
           config={statusConfig}
-          order={["4", "5", "2", "3"]}
+          order={["3", "5", "2", "4"]}
           totalCount={allItems.length}
           counts={allItems.reduce(
             (acc, item) => {
@@ -357,7 +384,7 @@ function SharedTasksTab<
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
+            <SelectContent className="max-h-[400px]">
               <SelectItem
                 value="all"
                 className="rounded-t-sm rounded-b-none py-3 border-b-2 border-gray-300 last:border-0 cursor-pointer"
@@ -389,7 +416,7 @@ function SharedTasksTab<
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
+            <SelectContent className="max-h-[400px]">
               <SelectItem
                 value="all"
                 className="rounded-t-sm rounded-b-none py-3 border-b-2 border-gray-300 last:border-0 cursor-pointer"
@@ -446,6 +473,8 @@ function SharedTasksTab<
           />
         </div>
       )}
+
+      <DateFilterButton value={dateFilter} onChange={setDateFilter} />
     </div>
   );
 }
@@ -458,6 +487,7 @@ function CreatedTasksTab() {
       endpoint="/api/v1/tasks/outside"
       renderItem={(task) => <CreatedTaskCard key={task.id} task={task} />}
       getAssignee={(task) => task.assignee}
+      getCreatedAt={(task) => task.created_at}
       assigneeRoleLabel="Nhân sự"
       assigneeRolePlaceholder="Nhân sự"
     />
@@ -472,6 +502,7 @@ function AssignedTasksTab() {
       endpoint="/api/v1/tasks/employees/outside"
       renderItem={(item) => <EmployeeTaskCard key={item.id} item={item} />}
       getAssignee={(item) => item.employee}
+      getCreatedAt={(item) => item.created_at}
       assigneeRoleLabel="Nhân sự"
       assigneeRolePlaceholder="Nhân sự"
     />

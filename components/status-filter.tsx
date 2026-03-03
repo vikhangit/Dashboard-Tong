@@ -40,7 +40,7 @@ export function StatusFilter({
           <span
             className={cn(
               "ml-1",
-              filter === "all" ? "text-white/80" : "opacity-70",
+              filter === "all" ? "text-white/80" : "opacity-90",
             )}
           >
             ({totalCount})
@@ -59,16 +59,16 @@ export function StatusFilter({
             variant="outline"
             onClick={() => onFilterChange(key)}
             className={cn(
-              "rounded-full border transition-colors",
+              "rounded-full border",
               isActive
                 ? `${item.color} text-white hover:opacity-90 border-transparent shadow-sm`
-                : `${item.textColor || ""} border-current/20 bg-background hover:bg-accent hover:text-accent-foreground`,
+                : `${item.textColor || ""} border-current/20 bg-white hover:bg-accent hover:text-accent-foreground`,
             )}
             size="sm"
           >
             {item.label}
             <span
-              className={cn("ml-1", isActive ? "text-white/80" : "opacity-70")}
+              className={cn("ml-1", isActive ? "text-white/80" : "opacity-90")}
             >
               ({count})
             </span>
