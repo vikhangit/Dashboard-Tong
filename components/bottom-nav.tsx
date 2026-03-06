@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bot, MessageSquare, LayoutGrid } from "lucide-react";
+import { PermissionGuard } from "@/components/permission-guard";
 
 interface BottomNavProps {
   showDashboard: boolean;
@@ -22,13 +23,15 @@ export function BottomNav({ showDashboard, setShowDashboard }: BottomNavProps) {
           <span className="text-xs font-medium">Chỉ đạo</span>
         </button>
 
-        <Link
-          href="/chat"
-          className="flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all text-muted-foreground hover:bg-white/50"
-        >
-          <MessageSquare className="h-5 w-5" />
-          <span className="text-xs font-medium">AI Chat</span>
-        </Link>
+        <PermissionGuard permission="chat.view">
+          <Link
+            href="/chat"
+            className="flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all text-muted-foreground hover:bg-white/50"
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span className="text-xs font-medium">AI Chat</span>
+          </Link>
+        </PermissionGuard>
 
         <button
           onClick={() => setShowDashboard(true)}

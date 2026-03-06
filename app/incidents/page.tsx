@@ -25,6 +25,8 @@ import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
 import { CollapsibleSection } from "@/components/collapsible-section";
 import { AttachmentList } from "@/components/attachment-list";
+import { PermissionGuard } from "@/components/permission-guard";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const statusConfig = {
   open: {
@@ -187,227 +189,237 @@ export default function IncidentsPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-holographic">
-      <PageHeader
-        title="Sự cố"
-        icon={<AlertTriangle className="size-6 text-red-600" />}
-      >
-        <ReloadButton onReload={fetchIncidents} />
-      </PageHeader>
+    <PagePermissionGuard permission="incidents.view">
+      <div className="min-h-screen gradient-holographic">
+        <PageHeader
+          title="Sự cố"
+          icon={<AlertTriangle className="size-6 text-red-600" />}
+        >
+          <ReloadButton onReload={fetchIncidents} />
+        </PageHeader>
 
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Filters */}
-        <StatusFilter
-          filter={filter}
-          onFilterChange={(value) =>
-            setFilter(value as "all" | keyof typeof statusConfig)
-          }
-          config={statusConfig}
-          totalCount={incidents.length}
-          counts={incidents.reduce(
-            (acc, i) => {
-              const status = i.status;
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          )}
-          className="mb-6 flex-wrap"
-        />
+        <div className="container mx-auto px-4 py-6 max-w-4xl">
+          {/* Filters */}
+          <StatusFilter
+            filter={filter}
+            onFilterChange={(value) =>
+              setFilter(value as "all" | keyof typeof statusConfig)
+            }
+            config={statusConfig}
+            totalCount={incidents.length}
+            counts={incidents.reduce(
+              (acc, i) => {
+                const status = i.status;
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="mb-6 flex-wrap"
+          />
 
-        <div className="space-y-4">
-          {paginatedIncidents.map((incident) => {
-            const config =
-              statusConfig[incident.status as keyof typeof statusConfig] ||
-              statusConfig.open;
-            const StatusIcon = config.icon;
+          <div className="space-y-4">
+            {paginatedIncidents.map((incident) => {
+              const config =
+                statusConfig[incident.status as keyof typeof statusConfig] ||
+                statusConfig.open;
+              const StatusIcon = config.icon;
 
-            return (
-              <div
-                key={incident.id}
-                className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
-              >
+              return (
                 <div
-                  className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
-                />
+                  key={incident.id}
+                  className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                  />
 
-                <div className="p-4 pl-5">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
-                      >
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-base text-muted-foreground flex items-center gap-1">
-                        {formatShortDateTime(incident.createdAt)}
-                      </span>
+                  <div className="p-4 pl-5">
+                    <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
-                        {/* MarkAsReadButton removed */}
+                        <Badge
+                          variant="secondary"
+                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
+                        >
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {config.label}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-base text-muted-foreground flex items-center gap-1">
+                          {formatShortDateTime(incident.createdAt)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {/* MarkAsReadButton removed */}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2 mb-3">
-                    <h3 className="text-lg font-semibold">{incident.title}</h3>
-                    <ExpandableText
-                      text={incident.description}
-                      className="text-lg text-muted-foreground"
-                    />
-                  </div>
+                    <div className="flex flex-col gap-2 mb-3">
+                      <h3 className="text-lg font-semibold">
+                        {incident.title}
+                      </h3>
+                      <ExpandableText
+                        text={incident.description}
+                        className="text-lg text-muted-foreground"
+                      />
+                    </div>
 
-                  {(editingId === incident.id || incident.directionContent) && (
-                    <div className="mt-4">
-                      {editingId === incident.id ? (
-                        <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-                          <textarea
-                            className="w-full p-2 rounded-md border text-base bg-background"
-                            rows={3}
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="Nhập nội dung chỉ đạo..."
-                          />
-                          <div className="flex justify-end gap-2">
+                    {(editingId === incident.id ||
+                      incident.directionContent) && (
+                      <div className="mt-4">
+                        {editingId === incident.id ? (
+                          <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                            <textarea
+                              className="w-full p-2 rounded-md border text-base bg-background"
+                              rows={3}
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              placeholder="Nhập nội dung chỉ đạo..."
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingId(null)}
+                              >
+                                Hủy
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveDirection(incident.id)}
+                              >
+                                Lưu
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="group relative flex items-start gap-2 text-base text-foreground/90 bg-purple-50 p-3 rounded-md border border-purple-100 pr-8">
+                            <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
+                            <span className="whitespace-pre-wrap text-purple-900">
+                              {incident.directionContent}
+                            </span>
                             <Button
-                              size="sm"
                               variant="ghost"
-                              onClick={() => setEditingId(null)}
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
+                              onClick={() => startEditing(incident)}
                             >
-                              Hủy
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveDirection(incident.id)}
-                            >
-                              Lưu
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
                             </Button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="group relative flex items-start gap-2 text-base text-foreground/90 bg-purple-50 p-3 rounded-md border border-purple-100 pr-8">
-                          <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
-                          <span className="whitespace-pre-wrap text-purple-900">
-                            {incident.directionContent}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
-                            onClick={() => startEditing(incident)}
-                          >
-                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  {incident.attachment && incident.attachment.length > 0 && (
-                    <CollapsibleSection title="Minh chứng" defaultOpen={true}>
-                      <AttachmentList attachments={incident.attachment} />
-                    </CollapsibleSection>
-                  )}
+                    {incident.attachment && incident.attachment.length > 0 && (
+                      <CollapsibleSection title="Minh chứng" defaultOpen={true}>
+                        <AttachmentList attachments={incident.attachment} />
+                      </CollapsibleSection>
+                    )}
 
-                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-100">
-                    <span
-                      className={cn(
-                        "text-sm font-semibold px-2 py-0.5 rounded-full",
-                        severityConfig[incident.severity]?.color,
-                      )}
-                    >
-                      Mức độ: {severityConfig[incident.severity]?.label}
-                    </span>
-                    {!editingId &&
-                      !incident.directionContent &&
-                      incident.status !== "resolved" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (
-                              isRecording &&
-                              recordingIncidentId === incident.id
-                            ) {
-                              stopRecording();
-                            } else {
-                              setRecordingIncidentId(incident.id);
-                              startRecording();
-                            }
-                          }}
-                          disabled={
-                            (isRecording &&
-                              recordingIncidentId !== incident.id) ||
-                            (isTranscribing &&
-                              recordingIncidentId !== incident.id)
-                          }
-                          className={cn(
-                            "gap-1.5 transition-all duration-500 ease-in-out",
-                            (isRecording &&
-                              recordingIncidentId === incident.id) ||
-                              (isTranscribing &&
-                                recordingIncidentId === incident.id)
-                              ? "w-auto"
-                              : "text-purple-600 hover:bg-purple-50",
-                            isRecording && recordingIncidentId === incident.id
-                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
-                              : isTranscribing &&
+                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-100">
+                      <span
+                        className={cn(
+                          "text-sm font-semibold px-2 py-0.5 rounded-full",
+                          severityConfig[incident.severity]?.color,
+                        )}
+                      >
+                        Mức độ: {severityConfig[incident.severity]?.label}
+                      </span>
+                      {!editingId &&
+                        !incident.directionContent &&
+                        incident.status !== "resolved" && (
+                          <PermissionGuard permission="incidents.direct">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (
+                                  isRecording &&
                                   recordingIncidentId === incident.id
-                                ? "bg-blue-50 text-blue-600 border-blue-200"
-                                : "",
-                          )}
-                        >
-                          {isRecording &&
-                          recordingIncidentId === incident.id ? (
-                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
-                              <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
-                              <span className="whitespace-nowrap">
-                                Đang nghe...
-                              </span>
-                            </div>
-                          ) : isTranscribing &&
-                            recordingIncidentId === incident.id ? (
-                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span className="whitespace-nowrap">
-                                Đang xử lý...
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
-                              <Mic className="h-3.5 w-3.5" />
-                              <span className="whitespace-nowrap">Chỉ đạo</span>
-                            </div>
-                          )}
-                        </Button>
-                      )}
+                                ) {
+                                  stopRecording();
+                                } else {
+                                  setRecordingIncidentId(incident.id);
+                                  startRecording();
+                                }
+                              }}
+                              disabled={
+                                (isRecording &&
+                                  recordingIncidentId !== incident.id) ||
+                                (isTranscribing &&
+                                  recordingIncidentId !== incident.id)
+                              }
+                              className={cn(
+                                "gap-1.5 transition-all duration-500 ease-in-out",
+                                (isRecording &&
+                                  recordingIncidentId === incident.id) ||
+                                  (isTranscribing &&
+                                    recordingIncidentId === incident.id)
+                                  ? "w-auto"
+                                  : "text-purple-600 hover:bg-purple-50",
+                                isRecording &&
+                                  recordingIncidentId === incident.id
+                                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
+                                  : isTranscribing &&
+                                      recordingIncidentId === incident.id
+                                    ? "bg-blue-50 text-blue-600 border-blue-200"
+                                    : "",
+                              )}
+                            >
+                              {isRecording &&
+                              recordingIncidentId === incident.id ? (
+                                <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                                  <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                                  <span className="whitespace-nowrap">
+                                    Đang nghe...
+                                  </span>
+                                </div>
+                              ) : isTranscribing &&
+                                recordingIncidentId === incident.id ? (
+                                <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <span className="whitespace-nowrap">
+                                    Đang xử lý...
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                                  <Mic className="h-3.5 w-3.5" />
+                                  <span className="whitespace-nowrap">
+                                    Chỉ đạo
+                                  </span>
+                                </div>
+                              )}
+                            </Button>
+                          </PermissionGuard>
+                        )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="mt-6">
-            <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
-              itemName="sự cố"
-              currentCount={paginatedIncidents.length}
-            />
+              );
+            })}
           </div>
-        )}
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6">
+              <AppPagination
+                page={pagination.page}
+                total={pagination.total}
+                limit={pagination.limit}
+                onChange={(newPage) =>
+                  setPagination((prev) => ({ ...prev, page: newPage }))
+                }
+                itemName="sự cố"
+                currentCount={paginatedIncidents.length}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }
