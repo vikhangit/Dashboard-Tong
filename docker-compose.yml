@@ -5,6 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.apecglobal.net
+        NEXT_PUBLIC_SUPABASE_URL: https://qzalierhdfikuvcohyda.supabase.co
+        SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6YWxpZXJoZGZpa3V2Y29oeWRhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc1MzM4NiwiZXhwIjoyMDg4MzI5Mzg2fQ.Qv22gEkUWqp5q3fJQnKyzw8F6kyjwu8sqBdEnWsXfXQ
 
     network_mode: "host"
 
