@@ -29,6 +29,8 @@ import { AttachmentList } from "@/components/attachment-list";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
 import { CollapsibleSection } from "@/components/collapsible-section";
+import { PermissionGuard } from "@/components/permission-guard";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const statusConfig = {
   submitted: {
@@ -197,239 +199,253 @@ export default function ProposalsPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-holographic">
-      <PageHeader
-        title="Đề xuất"
-        icon={<Lightbulb className="size-6 text-yellow-600" />}
-      >
-        <ReloadButton onReload={fetchProposals} />
-      </PageHeader>
+    <PagePermissionGuard permission="proposals.view">
+      <div className="min-h-screen gradient-holographic">
+        <PageHeader
+          title="Đề xuất"
+          icon={<Lightbulb className="size-6 text-yellow-600" />}
+        >
+          <ReloadButton onReload={fetchProposals} />
+        </PageHeader>
 
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Filters */}
-        <StatusFilter
-          filter={filter}
-          onFilterChange={(value) =>
-            setFilter(value as "all" | keyof typeof statusConfig)
-          }
-          config={statusConfig}
-          totalCount={proposals.length}
-          counts={proposals.reduce(
-            (acc, p) => {
-              const status = p.status;
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          )}
-          className="mb-6 flex-wrap"
-        />
+        <div className="container mx-auto px-4 py-6 max-w-4xl">
+          {/* Filters */}
+          <StatusFilter
+            filter={filter}
+            onFilterChange={(value) =>
+              setFilter(value as "all" | keyof typeof statusConfig)
+            }
+            config={statusConfig}
+            totalCount={proposals.length}
+            counts={proposals.reduce(
+              (acc, p) => {
+                const status = p.status;
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="mb-6 flex-wrap"
+          />
 
-        <div className="space-y-4">
-          {paginatedProposals.map((proposal) => {
-            const config =
-              statusConfig[proposal.status as keyof typeof statusConfig] ||
-              statusConfig.draft;
-            const StatusIcon = config.icon;
+          <div className="space-y-4">
+            {paginatedProposals.map((proposal) => {
+              const config =
+                statusConfig[proposal.status as keyof typeof statusConfig] ||
+                statusConfig.draft;
+              const StatusIcon = config.icon;
 
-            return (
-              <div
-                key={proposal.id}
-                className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
-              >
+              return (
                 <div
-                  className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
-                />
+                  key={proposal.id}
+                  className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                  />
 
-                <div className="p-4 pl-5">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
-                      >
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                    </div>
-
-                    <span className="text-base text-muted-foreground">
-                      {formatDateTime(proposal.createdAt)}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-2 mb-3">
-                    <h3 className="text-lg font-semibold">{proposal.title}</h3>
-                    <ExpandableText
-                      text={proposal.description}
-                      className="text-lg text-muted-foreground"
-                    />
-                  </div>
-
-                  {/* Direction Section - Minimal & Conditional */}
-                  {(editingId === proposal.id || proposal.directionContent) && (
-                    <div className="mt-4">
-                      {editingId === proposal.id ? (
-                        <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-                          <textarea
-                            className="w-full p-2 rounded-md border text-base bg-background"
-                            rows={3}
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="Nhập nội dung chỉ đạo..."
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingId(null)}
-                            >
-                              Hủy
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveDirection(proposal.id)}
-                            >
-                              Lưu
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="group relative flex items-start gap-2 text-base text-foreground/90 bg-purple-50 p-3 rounded-md border border-purple-100 pr-8">
-                          <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
-                          <span className="whitespace-pre-wrap">
-                            {proposal.directionContent}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
-                            onClick={() => startEditing(proposal)}
-                          >
-                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {proposal.attachment && proposal.attachment.length > 0 && (
-                    <CollapsibleSection title="Minh chứng" defaultOpen={true}>
-                      <AttachmentList attachments={proposal.attachment} />
-                    </CollapsibleSection>
-                  )}
-
-                  {/* Approval Actions */}
-                  {proposal.status === "submitted" && (
-                    <div className="flex flex-col gap-3 pt-4 border-t mt-4">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleApprove(proposal.id)}
-                          disabled={processingAction?.id === proposal.id}
-                          className="flex-1 gap-1.5 text-green-600 hover:bg-green-50"
+                  <div className="p-4 pl-5">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
                         >
-                          {processingAction?.id === proposal.id &&
-                          processingAction.type === "approve" ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Check className="h-3.5 w-3.5" />
-                          )}
-                          Duyệt
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleReject(proposal.id)}
-                          disabled={processingAction?.id === proposal.id}
-                          className="flex-1 gap-1.5 text-red-600 hover:bg-red-50"
-                        >
-                          {processingAction?.id === proposal.id &&
-                          processingAction.type === "reject" ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <X className="h-3.5 w-3.5" />
-                          )}
-                          Từ chối
-                        </Button>
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {config.label}
+                        </Badge>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (
-                            isRecording &&
-                            recordingProposalId === proposal.id
-                          ) {
-                            stopRecording();
-                          } else {
-                            setRecordingProposalId(proposal.id);
-                            startRecording();
-                          }
-                        }}
-                        disabled={
-                          (isRecording &&
-                            recordingProposalId !== proposal.id) ||
-                          (isTranscribing &&
-                            recordingProposalId !== proposal.id)
-                        }
-                        className={cn(
-                          "w-full gap-1.5 transition-all duration-500 ease-in-out",
-                          isRecording && recordingProposalId === proposal.id
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
-                            : isTranscribing &&
-                                recordingProposalId === proposal.id
-                              ? "bg-blue-50 text-blue-600 border-blue-200"
-                              : "text-purple-600 hover:bg-purple-50",
-                        )}
-                      >
-                        {isRecording && recordingProposalId === proposal.id ? (
-                          <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
-                            <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
-                            <span className="whitespace-nowrap">
-                              Đang nghe...
-                            </span>
-                          </div>
-                        ) : isTranscribing &&
-                          recordingProposalId === proposal.id ? (
-                          <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span className="whitespace-nowrap">
-                              Đang xử lý...
-                            </span>
+
+                      <span className="text-base text-muted-foreground">
+                        {formatDateTime(proposal.createdAt)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mb-3">
+                      <h3 className="text-lg font-semibold">
+                        {proposal.title}
+                      </h3>
+                      <ExpandableText
+                        text={proposal.description}
+                        className="text-lg text-muted-foreground"
+                      />
+                    </div>
+
+                    {/* Direction Section - Minimal & Conditional */}
+                    {(editingId === proposal.id ||
+                      proposal.directionContent) && (
+                      <div className="mt-4">
+                        {editingId === proposal.id ? (
+                          <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                            <textarea
+                              className="w-full p-2 rounded-md border text-base bg-background"
+                              rows={3}
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              placeholder="Nhập nội dung chỉ đạo..."
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingId(null)}
+                              >
+                                Hủy
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveDirection(proposal.id)}
+                              >
+                                Lưu
+                              </Button>
+                            </div>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-1.5 animate-in fade-in zoom-in duration-300">
-                            <Mic className="h-3.5 w-3.5" />
-                            <span className="whitespace-nowrap">Chỉ đạo</span>
+                          <div className="group relative flex items-start gap-2 text-base text-foreground/90 bg-purple-50 p-3 rounded-md border border-purple-100 pr-8">
+                            <Lightbulb className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
+                            <span className="whitespace-pre-wrap">
+                              {proposal.directionContent}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
+                              onClick={() => startEditing(proposal)}
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </Button>
                           </div>
                         )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      </div>
+                    )}
 
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="mt-6">
-            <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
-              itemName="đề xuất"
-              currentCount={paginatedProposals.length}
-            />
+                    {proposal.attachment && proposal.attachment.length > 0 && (
+                      <CollapsibleSection title="Minh chứng" defaultOpen={true}>
+                        <AttachmentList attachments={proposal.attachment} />
+                      </CollapsibleSection>
+                    )}
+
+                    {/* Approval Actions */}
+                    {proposal.status === "submitted" && (
+                      <div className="flex flex-col gap-3 pt-4 border-t mt-4">
+                        <div className="flex gap-2">
+                          <PermissionGuard permission="proposals.approve">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApprove(proposal.id)}
+                              disabled={processingAction?.id === proposal.id}
+                              className="flex-1 gap-1.5 text-green-600 hover:bg-green-50"
+                            >
+                              {processingAction?.id === proposal.id &&
+                              processingAction.type === "approve" ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                              Duyệt
+                            </Button>
+                          </PermissionGuard>
+                          <PermissionGuard permission="proposals.reject">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReject(proposal.id)}
+                              disabled={processingAction?.id === proposal.id}
+                              className="flex-1 gap-1.5 text-red-600 hover:bg-red-50"
+                            >
+                              {processingAction?.id === proposal.id &&
+                              processingAction.type === "reject" ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
+                              Từ chối
+                            </Button>
+                          </PermissionGuard>
+                        </div>
+                        <PermissionGuard permission="proposals.direct">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (
+                                isRecording &&
+                                recordingProposalId === proposal.id
+                              ) {
+                                stopRecording();
+                              } else {
+                                setRecordingProposalId(proposal.id);
+                                startRecording();
+                              }
+                            }}
+                            disabled={
+                              (isRecording &&
+                                recordingProposalId !== proposal.id) ||
+                              (isTranscribing &&
+                                recordingProposalId !== proposal.id)
+                            }
+                            className={cn(
+                              "w-full gap-1.5 transition-all duration-500 ease-in-out",
+                              isRecording && recordingProposalId === proposal.id
+                                ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 animate-pulse"
+                                : isTranscribing &&
+                                    recordingProposalId === proposal.id
+                                  ? "bg-blue-50 text-blue-600 border-blue-200"
+                                  : "text-purple-600 hover:bg-purple-50",
+                            )}
+                          >
+                            {isRecording &&
+                            recordingProposalId === proposal.id ? (
+                              <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
+                                <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                                <span className="whitespace-nowrap">
+                                  Đang nghe...
+                                </span>
+                              </div>
+                            ) : isTranscribing &&
+                              recordingProposalId === proposal.id ? (
+                              <div className="flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span className="whitespace-nowrap">
+                                  Đang xử lý...
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                                <Mic className="h-3.5 w-3.5" />
+                                <span className="whitespace-nowrap">
+                                  Chỉ đạo
+                                </span>
+                              </div>
+                            )}
+                          </Button>
+                        </PermissionGuard>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6">
+              <AppPagination
+                page={pagination.page}
+                total={pagination.total}
+                limit={pagination.limit}
+                onChange={(newPage) =>
+                  setPagination((prev) => ({ ...prev, page: newPage }))
+                }
+                itemName="đề xuất"
+                currentCount={paginatedProposals.length}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }

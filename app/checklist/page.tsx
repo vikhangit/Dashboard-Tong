@@ -40,6 +40,7 @@ import { ChecklistItem } from "@/lib/types";
 import { AppHeader } from "@/components/app-header";
 import { PageHeader } from "@/components/page-header";
 import { useCachedFetch } from "@/hooks/use-cached-fetch";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const getGroupStats = (items: ChecklistItem[]) => {
   const deadlines = items
@@ -240,352 +241,356 @@ export default function ChecklistPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-holographic pb-20">
-      <PageHeader
-        title="Checklist"
-        icon={<ListChecks className="size-6 text-indigo-600" />}
-      />
+    <PagePermissionGuard permission="checklist.view">
+      <div className="min-h-screen gradient-holographic pb-20">
+        <PageHeader
+          title="Checklist"
+          icon={<ListChecks className="size-6 text-indigo-600" />}
+        />
 
-      <div className="container mx-auto p-3 max-w-7xl">
-        {/* Header & Summary Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gradient-to-br from-red-900 via-indigo-900/80 to-blue-900 px-3 py-4 rounded-3xl border border-indigo-700 shadow-xl shadow-blue-900/20">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-            {/* Project Filter */}
-            <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex-1 sm:flex-none">
-              <div className="bg-indigo-50 p-2 rounded-xl text-blue-600 hidden sm:block">
-                <FolderKanban className="size-5 shrink-0" />
-              </div>
-              <Select
-                value={selectedProject}
-                onValueChange={setSelectedProject}
-              >
-                <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-semibold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight sm:max-w-xs truncate">
-                  <SelectValue placeholder="Chọn dự án" />
-                </SelectTrigger>
-                <SelectContent align="start" className="min-w-[340px] p-1">
-                  {/* Status Filter inside Dropdown */}
-                  <div className="flex items-center gap-1 p-0 mb-2 flex-wrap">
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedStatus("all");
-                      }}
-                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        selectedStatus === "all"
-                          ? "bg-slate-800 text-white shadow-sm"
-                          : "text-slate-600 hover:bg-white hover:shadow-sm"
-                      }`}
-                    >
-                      Tất cả ({projectStatusCounts.all})
-                    </button>
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedStatus("Mới");
-                      }}
-                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        selectedStatus === "Mới"
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-blue-600 hover:bg-blue-50"
-                      }`}
-                    >
-                      Mới ({projectStatusCounts["Mới"]})
-                    </button>
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedStatus("Đang chuẩn bị");
-                      }}
-                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        selectedStatus === "Đang chuẩn bị"
-                          ? "bg-amber-500 text-white shadow-sm"
-                          : "text-amber-600 hover:bg-amber-50"
-                      }`}
-                    >
-                      Đang ({projectStatusCounts["Đang chuẩn bị"]})
-                    </button>
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedStatus("Hoàn thành");
-                      }}
-                      className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        selectedStatus === "Hoàn thành"
-                          ? "bg-green-600 text-white shadow-sm"
-                          : "text-green-600 hover:bg-green-50"
-                      }`}
-                    >
-                      Xong ({projectStatusCounts["Hoàn thành"]})
-                    </button>
-                  </div>
-
-                  <div className="h-px bg-slate-100 mb-2 mx-1" />
-
-                  {projects.map((project) => (
-                    <SelectItem
-                      key={project}
-                      value={project}
-                      className="py-3 cursor-pointer focus:bg-blue-100 focus:text-blue-700 font-medium text-slate-700 text-lg"
-                    >
-                      {project}
-                    </SelectItem>
-                  ))}
-                  {projects.length === 0 && (
-                    <div className="py-3 px-2 text-slate-500 font-medium text-lg text-center">
-                      Không có dự án
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Project Summary Info */}
-          {projectSummary && (
-            <div className="flex flex-col gap-2 min-w-[240px]">
-              {/* Row 1: Status & Progress */}
-              <div className="flex items-stretch gap-2">
-                {/* Status */}
-                <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[4]">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
-                    Trạng thái
-                  </span>
-                  <div
-                    className={`flex items-center font-bold ${
-                      projectSummary.status === "Hoàn thành"
-                        ? "text-green-600"
-                        : "text-amber-600"
-                    }`}
-                  >
-                    <span className="text-lg">{projectSummary.status}</span>
-                  </div>
+        <div className="container mx-auto p-3 max-w-7xl">
+          {/* Header & Summary Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gradient-to-br from-red-900 via-indigo-900/80 to-blue-900 px-3 py-4 rounded-3xl border border-indigo-700 shadow-xl shadow-blue-900/20">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+              {/* Project Filter */}
+              <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex-1 sm:flex-none">
+                <div className="bg-indigo-50 p-2 rounded-xl text-blue-600 hidden sm:block">
+                  <FolderKanban className="size-5 shrink-0" />
                 </div>
-
-                {/* Progress */}
-                <div className="bg-white px-3 py-1 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[2]">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">
-                    Tiến độ
-                  </span>
-                  <span
-                    className={`text-lg leading-none font-black ${
-                      projectSummary.avgProgress === 100
-                        ? "text-green-600"
-                        : "text-blue-600"
-                    }`}
-                  >
-                    {projectSummary.avgProgress}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 2: Time (Full Width) */}
-              <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center w-full">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
-                  Thời gian
-                </span>
-                <div className="flex items-center gap-2 text-base font-bold text-slate-700 w-full justify-center">
-                  <span>
-                    {projectSummary.earliestStart
-                      ? format(projectSummary.earliestStart, "dd/MM/yyyy")
-                      : "--/--/----"}
-                  </span>
-                  <span className="text-slate-600">→</span>
-                  <span
-                    className={
-                      projectSummary.status !== "Hoàn thành"
-                        ? "text-red-500"
-                        : ""
-                    }
-                  >
-                    {projectSummary.latestDeadline
-                      ? format(projectSummary.latestDeadline, "dd/MM/yyyy")
-                      : "--/--/----"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Content Section */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <Accordion
-            type="multiple"
-            key={displayFields.join(",")} // Force remount when fields change
-            defaultValue={[]}
-            className="space-y-2"
-          >
-            {isLoading && (!items || items.length === 0) ? (
-              <div className="text-center py-12 w-full col-span-full">
-                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-              </div>
-            ) : (
-              displayFields.map((field) => (
-                <AccordionItem
-                  key={field}
-                  value={field}
-                  className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
+                <Select
+                  value={selectedProject}
+                  onValueChange={setSelectedProject}
                 >
-                  <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
-                    <div className="flex flex-1 items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                        <span className="text-lg font-bold text-blue-900 uppercase tracking-tight">
-                          {field}
-                        </span>
-                      </div>
-
-                      {/* Group Stats */}
-                      {groupedItems[field]?.length > 0 ? (
-                        (() => {
-                          const { avgProgress, count, latestDeadline } =
-                            getGroupStats(groupedItems[field]);
-
-                          return (
-                            <div className="flex items-center gap-1 text-base font-medium text-slate-600">
-                              {/* Progress */}
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={
-                                    avgProgress === 100
-                                      ? "text-green-600"
-                                      : "text-blue-600"
-                                  }
-                                >
-                                  {avgProgress}%
-                                </span>
-                              </div>
-
-                              <span className="text-slate-400">/</span>
-
-                              {/* Count */}
-                              <div className="flex items-center gap-1 text-slate-800">
-                                <span>{count}</span>
-                              </div>
-
-                              <span className="text-slate-400">/</span>
-
-                              {/* Deadline */}
-                              <div className="flex items-center gap-1.5 text-red-600">
-                                {latestDeadline ? (
-                                  <span>{format(latestDeadline, "dd/MM")}</span>
-                                ) : (
-                                  <span>--/--</span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <span className="text-sm text-slate-500 font-medium">
-                          0 việc
-                        </span>
-                      )}
+                  <SelectTrigger className="w-full border-0 bg-transparent focus:ring-0 text-slate-800 font-semibold h-auto p-0 hover:bg-transparent shadow-none text-xl tracking-tight sm:max-w-xs truncate">
+                    <SelectValue placeholder="Chọn dự án" />
+                  </SelectTrigger>
+                  <SelectContent align="start" className="min-w-[340px] p-1">
+                    {/* Status Filter inside Dropdown */}
+                    <div className="flex items-center gap-1 p-0 mb-2 flex-wrap">
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedStatus("all");
+                        }}
+                        className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                          selectedStatus === "all"
+                            ? "bg-slate-800 text-white shadow-sm"
+                            : "text-slate-600 hover:bg-white hover:shadow-sm"
+                        }`}
+                      >
+                        Tất cả ({projectStatusCounts.all})
+                      </button>
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedStatus("Mới");
+                        }}
+                        className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                          selectedStatus === "Mới"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-blue-600 hover:bg-blue-50"
+                        }`}
+                      >
+                        Mới ({projectStatusCounts["Mới"]})
+                      </button>
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedStatus("Đang chuẩn bị");
+                        }}
+                        className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                          selectedStatus === "Đang chuẩn bị"
+                            ? "bg-amber-500 text-white shadow-sm"
+                            : "text-amber-600 hover:bg-amber-50"
+                        }`}
+                      >
+                        Đang ({projectStatusCounts["Đang chuẩn bị"]})
+                      </button>
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedStatus("Hoàn thành");
+                        }}
+                        className={`whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                          selectedStatus === "Hoàn thành"
+                            ? "bg-green-600 text-white shadow-sm"
+                            : "text-green-600 hover:bg-green-50"
+                        }`}
+                      >
+                        Xong ({projectStatusCounts["Hoàn thành"]})
+                      </button>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-3 pb-2 pt-0 bg-white">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
-                      {groupedItems[field]?.length === 0 ? (
-                        <div className="col-span-full text-center py-8 text-muted-foreground">
-                          <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                          <p className="text-base font-medium">
-                            Chưa có công việc nào
-                          </p>
+
+                    <div className="h-px bg-slate-100 mb-2 mx-1" />
+
+                    {projects.map((project) => (
+                      <SelectItem
+                        key={project}
+                        value={project}
+                        className="py-3 cursor-pointer focus:bg-blue-100 focus:text-blue-700 font-medium text-slate-700 text-lg"
+                      >
+                        {project}
+                      </SelectItem>
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="py-3 px-2 text-slate-500 font-medium text-lg text-center">
+                        Không có dự án
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Project Summary Info */}
+            {projectSummary && (
+              <div className="flex flex-col gap-2 min-w-[240px]">
+                {/* Row 1: Status & Progress */}
+                <div className="flex items-stretch gap-2">
+                  {/* Status */}
+                  <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[4]">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                      Trạng thái
+                    </span>
+                    <div
+                      className={`flex items-center font-bold ${
+                        projectSummary.status === "Hoàn thành"
+                          ? "text-green-600"
+                          : "text-amber-600"
+                      }`}
+                    >
+                      <span className="text-lg">{projectSummary.status}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress */}
+                  <div className="bg-white px-3 py-1 rounded-2xl border border-slate-400 flex flex-col items-center justify-center flex-[2]">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">
+                      Tiến độ
+                    </span>
+                    <span
+                      className={`text-lg leading-none font-black ${
+                        projectSummary.avgProgress === 100
+                          ? "text-green-600"
+                          : "text-blue-600"
+                      }`}
+                    >
+                      {projectSummary.avgProgress}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Row 2: Time (Full Width) */}
+                <div className="bg-white px-3 py-1.5 rounded-2xl border border-slate-400 flex flex-col items-center w-full">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
+                    Thời gian
+                  </span>
+                  <div className="flex items-center gap-2 text-base font-bold text-slate-700 w-full justify-center">
+                    <span>
+                      {projectSummary.earliestStart
+                        ? format(projectSummary.earliestStart, "dd/MM/yyyy")
+                        : "--/--/----"}
+                    </span>
+                    <span className="text-slate-600">→</span>
+                    <span
+                      className={
+                        projectSummary.status !== "Hoàn thành"
+                          ? "text-red-500"
+                          : ""
+                      }
+                    >
+                      {projectSummary.latestDeadline
+                        ? format(projectSummary.latestDeadline, "dd/MM/yyyy")
+                        : "--/--/----"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Content Section */}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Accordion
+              type="multiple"
+              key={displayFields.join(",")} // Force remount when fields change
+              defaultValue={[]}
+              className="space-y-2"
+            >
+              {isLoading && (!items || items.length === 0) ? (
+                <div className="text-center py-12 w-full col-span-full">
+                  <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+                </div>
+              ) : (
+                displayFields.map((field) => (
+                  <AccordionItem
+                    key={field}
+                    value={field}
+                    className="rounded-xl mb-4 shadow-sm backdrop-blur-sm overflow-hidden border border-slate-300"
+                  >
+                    <AccordionTrigger className="hover:no-underline pl-1 pr-4 py-2 bg-white group [&>svg]:hidden transition-all duration-200 rounded-b-none">
+                      <div className="flex flex-1 items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <ChevronRight className="size-6 text-slate-400 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                          <span className="text-lg font-bold text-blue-900 uppercase tracking-tight">
+                            {field}
+                          </span>
                         </div>
-                      ) : (
-                        groupedItems[field]?.map((item) => (
-                          <div
-                            key={item.id}
-                            className="group relative flex flex-col justify-between rounded-xl bg-gradient-to-br from-purple-50 to-blue-100  border-2 border-blue-300 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-200 p-3"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
-                                {item.task}
-                              </h4>
-                            </div>
 
-                            {/* Project Name (if viewing all) */}
-                            {selectedProject === "all" && (
-                              <div className="text-base text-blue-600 mb-2 font-medium flex items-center bg-blue-50 w-fit px-2 py-0.5 rounded-md">
-                                <FolderKanban className="h-3 w-3 mr-1.5" />
-                                {item.project}
-                              </div>
-                            )}
+                        {/* Group Stats */}
+                        {groupedItems[field]?.length > 0 ? (
+                          (() => {
+                            const { avgProgress, count, latestDeadline } =
+                              getGroupStats(groupedItems[field]);
 
-                            <div className="mt-auto">
-                              {/* Progress */}
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center text-base text-slate-600">
-                                  <div className="flex items-center gap-1.5">
-                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                    <span className="text-base font-medium">
-                                      {format(
-                                        new Date(item.startDate),
-                                        "dd/MM/yy",
-                                      )}
-                                      {" - "}
-                                      <span
-                                        className={
-                                          item.deadline
-                                            ? "text-red-600"
-                                            : "text-slate-400"
-                                        }
-                                      >
-                                        {item.deadline
-                                          ? format(
-                                              new Date(item.deadline),
-                                              "dd/MM/yy",
-                                            )
-                                          : "..."}
-                                      </span>
-                                    </span>
-                                  </div>
+                            return (
+                              <div className="flex items-center gap-1 text-base font-medium text-slate-600">
+                                {/* Progress */}
+                                <div className="flex items-center gap-2">
                                   <span
-                                    className={`font-bold text-base ${
-                                      item.progress === 100
+                                    className={
+                                      avgProgress === 100
                                         ? "text-green-600"
                                         : "text-blue-600"
-                                    }`}
+                                    }
                                   >
-                                    {item.progress}%
+                                    {avgProgress}%
                                   </span>
                                 </div>
-                                <Progress
-                                  value={item.progress}
-                                  className="h-1.5 bg-slate-50"
-                                  indicatorClassName={
-                                    item.progress === 100
-                                      ? "bg-green-500"
-                                      : "bg-blue-500"
-                                  }
-                                />
+
+                                <span className="text-slate-400">/</span>
+
+                                {/* Count */}
+                                <div className="flex items-center gap-1 text-slate-800">
+                                  <span>{count}</span>
+                                </div>
+
+                                <span className="text-slate-400">/</span>
+
+                                {/* Deadline */}
+                                <div className="flex items-center gap-1.5 text-red-600">
+                                  {latestDeadline ? (
+                                    <span>
+                                      {format(latestDeadline, "dd/MM")}
+                                    </span>
+                                  ) : (
+                                    <span>--/--</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-sm text-slate-500 font-medium">
+                            0 việc
+                          </span>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-3 pb-2 pt-0 bg-white">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 py-2">
+                        {groupedItems[field]?.length === 0 ? (
+                          <div className="col-span-full text-center py-8 text-muted-foreground">
+                            <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                            <p className="text-base font-medium">
+                              Chưa có công việc nào
+                            </p>
+                          </div>
+                        ) : (
+                          groupedItems[field]?.map((item) => (
+                            <div
+                              key={item.id}
+                              className="group relative flex flex-col justify-between rounded-xl bg-gradient-to-br from-purple-50 to-blue-100  border-2 border-blue-300 shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-200 p-3"
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-semibold text-lg text-black-900 line-clamp-2 leading-snug">
+                                  {item.task}
+                                </h4>
+                              </div>
+
+                              {/* Project Name (if viewing all) */}
+                              {selectedProject === "all" && (
+                                <div className="text-base text-blue-600 mb-2 font-medium flex items-center bg-blue-50 w-fit px-2 py-0.5 rounded-md">
+                                  <FolderKanban className="h-3 w-3 mr-1.5" />
+                                  {item.project}
+                                </div>
+                              )}
+
+                              <div className="mt-auto">
+                                {/* Progress */}
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center text-base text-slate-600">
+                                    <div className="flex items-center gap-1.5">
+                                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                      <span className="text-base font-medium">
+                                        {format(
+                                          new Date(item.startDate),
+                                          "dd/MM/yy",
+                                        )}
+                                        {" - "}
+                                        <span
+                                          className={
+                                            item.deadline
+                                              ? "text-red-600"
+                                              : "text-slate-400"
+                                          }
+                                        >
+                                          {item.deadline
+                                            ? format(
+                                                new Date(item.deadline),
+                                                "dd/MM/yy",
+                                              )
+                                            : "..."}
+                                        </span>
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={`font-bold text-base ${
+                                        item.progress === 100
+                                          ? "text-green-600"
+                                          : "text-blue-600"
+                                      }`}
+                                    >
+                                      {item.progress}%
+                                    </span>
+                                  </div>
+                                  <Progress
+                                    value={item.progress}
+                                    className="h-1.5 bg-slate-50"
+                                    indicatorClassName={
+                                      item.progress === 100
+                                        ? "bg-green-500"
+                                        : "bg-blue-500"
+                                    }
+                                  />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))
-            )}
-          </Accordion>
-        )}
+                          ))
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))
+              )}
+            </Accordion>
+          )}
+        </div>
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }
