@@ -18,6 +18,7 @@ import Link from "next/link";
 
 import { Message } from "@/lib/types";
 import { getChatContext } from "@/lib/chat-utils";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 interface QuickAction {
   icon: string;
@@ -125,176 +126,178 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden gradient-holographic flex flex-col">
-      {/* Header */}
-      <header className="glass-card border-b px-4 py-1.5 shrink-0">
-        <div className="container mx-auto flex items-center gap-3">
-          <Link href="/">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <ChevronLeft className="size-9" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <Bot className="h-6 w-6 text-white" />
+    <PagePermissionGuard permission="chat.view">
+      <div className="h-screen overflow-hidden gradient-holographic flex flex-col">
+        {/* Header */}
+        <header className="glass-card border-b px-4 py-1.5 shrink-0">
+          <div className="container mx-auto flex items-center gap-3">
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <ChevronLeft className="size-9" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                  <Bot className="h-6 w-6 text-white" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
               </div>
-              <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold text-foreground">
-                Trợ lý AI
-              </h1>
-              <p className="text-xs text-muted-foreground">Đang hoạt động</p>
+              <div>
+                <h1 className="text-base font-semibold text-foreground">
+                  Trợ lý AI
+                </h1>
+                <p className="text-xs text-muted-foreground">Đang hoạt động</p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 container mx-auto flex flex-col min-h-0">
-        <div className="flex flex-col h-full rounded-t-2xl rounded-b-none overflow-hidden border border-b-0">
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+        {/* Main Chat Area */}
+        <div className="flex-1 container mx-auto flex flex-col min-h-0">
+          <div className="flex flex-col h-full rounded-t-2xl rounded-b-none overflow-hidden border border-b-0">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-gradient-to-br from-purple-500 to-blue-500 text-white"
-                      : "glass-card text-foreground"
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <p className="text-lg whitespace-pre-wrap">
-                    {message.content}
-                  </p>
-                  <p
-                    className={`text-xs mt-1 ${
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       message.role === "user"
-                        ? "text-purple-100"
-                        : "text-muted-foreground"
+                        ? "bg-gradient-to-br from-purple-500 to-blue-500 text-white"
+                        : "glass-card text-foreground"
                     }`}
                   >
-                    {new Date(message.timestamp).toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="glass-card rounded-2xl px-4 py-3">
-                  <div className="flex gap-1">
-                    <div
-                      className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
+                    <p className="text-lg whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                    <p
+                      className={`text-xs mt-1 ${
+                        message.role === "user"
+                          ? "text-purple-100"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {new Date(message.timestamp).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
 
-          {/* Quick Actions */}
-          {/* <div className="p-4 space-y-2 bg-white/50 backdrop-blur-sm border-t border-white/20">
-            {quickActions.map((action, index) => (
-              <button
-                key={index}
-                onClick={() => handleQuickAction(action.action)}
-                className="w-full glass-card hover:bg-white/80 transition-all rounded-xl px-4 py-3 flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{action.icon}</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {action.label}
-                  </span>
-                </div>
-                <Sparkles className="h-4 w-4 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-            ))}
-          </div> */}
-
-          {/* Input Area */}
-          <div className="border-t px-4 py-2">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleMicClick}
-                disabled={isTranscribing}
-                className={`transition-all duration-300 rounded-full h-10 w-10 p-0 flex items-center justify-center shrink-0 ${
-                  isRecording
-                    ? "bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-lg scale-110 border-none"
-                    : isTranscribing
-                      ? "bg-gradient-to-br from-blue-400 to-cyan-500 text-white shadow-md animate-pulse border-none"
-                      : "bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-md border-none"
-                }`}
-              >
-                {isRecording ? (
-                  <div className="flex items-end gap-1 h-4 select-none pointer-events-none">
-                    <div
-                      className="w-1 bg-white rounded-full animate-sound-wave"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="w-1 bg-white rounded-full animate-sound-wave"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="w-1 bg-white rounded-full animate-sound-wave"
-                      style={{ animationDelay: "75ms" }}
-                    />
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="glass-card rounded-2xl px-4 py-3">
+                    <div className="flex gap-1">
+                      <div
+                        className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <div
+                        className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <div
+                        className="h-2 w-2 rounded-full bg-purple-500 animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </div>
                   </div>
-                ) : isTranscribing ? (
-                  <Loader2 className="h-4 w-4 text-white animate-spin" />
-                ) : (
-                  <Mic className="h-5 w-5" />
-                )}
-              </Button>
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Quick Actions */}
+            {/* <div className="p-4 space-y-2 bg-white/50 backdrop-blur-sm border-t border-white/20">
+              {quickActions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickAction(action.action)}
+                  className="w-full glass-card hover:bg-white/80 transition-all rounded-xl px-4 py-3 flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{action.icon}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {action.label}
+                    </span>
+                  </div>
+                  <Sparkles className="h-4 w-4 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ))}
+            </div> */}
+
+            {/* Input Area */}
+            <div className="border-t px-4 py-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleMicClick}
+                  disabled={isTranscribing}
+                  className={`transition-all duration-300 rounded-full h-10 w-10 p-0 flex items-center justify-center shrink-0 ${
+                    isRecording
+                      ? "bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-lg scale-110 border-none"
+                      : isTranscribing
+                        ? "bg-gradient-to-br from-blue-400 to-cyan-500 text-white shadow-md animate-pulse border-none"
+                        : "bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-md border-none"
+                  }`}
+                >
+                  {isRecording ? (
+                    <div className="flex items-end gap-1 h-4 select-none pointer-events-none">
+                      <div
+                        className="w-1 bg-white rounded-full animate-sound-wave"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <div
+                        className="w-1 bg-white rounded-full animate-sound-wave"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <div
+                        className="w-1 bg-white rounded-full animate-sound-wave"
+                        style={{ animationDelay: "75ms" }}
+                      />
+                    </div>
+                  ) : isTranscribing ? (
+                    <Loader2 className="h-4 w-4 text-white animate-spin" />
+                  ) : (
+                    <Mic className="h-5 w-5" />
+                  )}
+                </Button>
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={
+                    isRecording
+                      ? "Đang lắng nghe..."
+                      : isTranscribing
+                        ? "Đang xử lý..."
+                        : "Nhập tin nhắn..."
                   }
-                }}
-                placeholder={
-                  isRecording
-                    ? "Đang lắng nghe..."
-                    : isTranscribing
-                      ? "Đang xử lý..."
-                      : "Nhập tin nhắn..."
-                }
-                className="flex-1 min-h-[40px] max-h-[200px] glass-card border-purple-200 focus-visible:ring-purple-500 resize-none py-3 text-lg"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className="bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+                  className="flex-1 min-h-[40px] max-h-[200px] glass-card border-purple-200 focus-visible:ring-purple-500 resize-none py-3 text-lg"
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={!input.trim()}
+                  className="bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }

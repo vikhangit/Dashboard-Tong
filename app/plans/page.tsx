@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { ReloadButton } from "@/components/reload-button";
 import { StatusFilter } from "@/components/status-filter";
 import { formatShortDateTime } from "@/lib/utils";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const statusConfig: Record<
   string,
@@ -103,177 +104,179 @@ export default function PlansPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-holographic">
-      <PageHeader
-        title="Kế hoạch"
-        icon={<Calendar className="size-6 text-blue-600" />}
-      >
-        <ReloadButton onReload={() => fetchPlans()} />
-      </PageHeader>
+    <PagePermissionGuard permission="plans.view">
+      <div className="min-h-screen gradient-holographic">
+        <PageHeader
+          title="Kế hoạch"
+          icon={<Calendar className="size-6 text-blue-600" />}
+        >
+          <ReloadButton onReload={() => fetchPlans()} />
+        </PageHeader>
 
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        {/* Search */}
-        <div className="mb-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-secondary-foreground/50 z-10" />
-          <Input
-            placeholder="Tìm kiếm kế hoạch..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white backdrop-blur-sm border-muted/40"
+        <div className="container mx-auto px-4 py-6 max-w-3xl">
+          {/* Search */}
+          <div className="mb-4 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-secondary-foreground/50 z-10" />
+            <Input
+              placeholder="Tìm kiếm kế hoạch..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white backdrop-blur-sm border-muted/40"
+            />
+          </div>
+
+          {/* Filters */}
+          <StatusFilter
+            filter={statusFilter}
+            onFilterChange={(value) => {
+              setStatusFilter(value);
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+            config={statusConfig}
+            totalCount={allPlans.length}
+            counts={allPlans.reduce(
+              (acc, plan) => {
+                const status = plan.status;
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="mb-6 flex-wrap"
           />
-        </div>
 
-        {/* Filters */}
-        <StatusFilter
-          filter={statusFilter}
-          onFilterChange={(value) => {
-            setStatusFilter(value);
-            setPagination((prev) => ({ ...prev, page: 1 }));
-          }}
-          config={statusConfig}
-          totalCount={allPlans.length}
-          counts={allPlans.reduce(
-            (acc, plan) => {
-              const status = plan.status;
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          )}
-          className="mb-6 flex-wrap"
-        />
+          {/* Plans List */}
+          <div className="space-y-4">
+            {loading && (!allPlans || allPlans.length === 0) ? (
+              <div className="text-center py-12">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+              </div>
+            ) : plans.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Không có kế hoạch nào</p>
+              </Card>
+            ) : (
+              plans.map((plan) => {
+                const config = statusConfig[plan.status] || statusConfig.draft;
+                const StatusIcon = config.icon;
 
-        {/* Plans List */}
-        <div className="space-y-4">
-          {loading && (!allPlans || allPlans.length === 0) ? (
-            <div className="text-center py-12">
-              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-            </div>
-          ) : plans.length === 0 ? (
-            <Card className="glass-card p-12 text-center">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Không có kế hoạch nào</p>
-            </Card>
-          ) : (
-            plans.map((plan) => {
-              const config = statusConfig[plan.status] || statusConfig.draft;
-              const StatusIcon = config.icon;
+                return (
+                  <Card
+                    key={plan.id}
+                    className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border overflow-hidden shadow-sm hover:shadow-md"
+                  >
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                    />
 
-              return (
-                <Card
-                  key={plan.id}
-                  className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border overflow-hidden shadow-sm hover:shadow-md"
-                >
-                  <div
-                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
-                  />
-
-                  <div className="px-4">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <Badge
-                        variant="secondary"
-                        className={`font-normal ${config.color} text-white px-2 py-0.5 h-6 text-xs`}
-                      >
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground font-medium">
-                        {formatShortDateTime(plan.createdAt)}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-medium text-foreground leading-snug mb-2">
-                      {plan.title}
-                    </h3>
-
-                    <div className="mb-4">
-                      <ExpandableText text={plan.description || ""} />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground mt-auto">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-blue-500" />
-                        <span>
-                          {format(new Date(plan.startDate), "dd/MM/yyyy")}
+                    <div className="px-4">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <Badge
+                          variant="secondary"
+                          className={`font-normal ${config.color} text-white px-2 py-0.5 h-6 text-xs`}
+                        >
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {config.label}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {formatShortDateTime(plan.createdAt)}
                         </span>
-                        {plan.endDate && (
-                          <>
-                            <span>-</span>
-                            <span>
-                              {format(new Date(plan.endDate), "dd/MM/yyyy")}
-                            </span>
-                          </>
-                        )}
                       </div>
 
-                      {plan.attachments && plan.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2 w-full">
-                          {plan.attachments.map((link, index) => {
-                            if (isImageUrl(link)) {
+                      <h3 className="text-lg font-medium text-foreground leading-snug mb-2">
+                        {plan.title}
+                      </h3>
+
+                      <div className="mb-4">
+                        <ExpandableText text={plan.description || ""} />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground mt-auto">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-blue-500" />
+                          <span>
+                            {format(new Date(plan.startDate), "dd/MM/yyyy")}
+                          </span>
+                          {plan.endDate && (
+                            <>
+                              <span>-</span>
+                              <span>
+                                {format(new Date(plan.endDate), "dd/MM/yyyy")}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {plan.attachments && plan.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {plan.attachments.map((link, index) => {
+                              if (isImageUrl(link)) {
+                                return (
+                                  <a
+                                    key={index}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="relative group overflow-hidden rounded-md border border-border hover:border-primary/50 transition-all"
+                                    title={link}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={link}
+                                      alt="Attachment"
+                                      className="h-16 w-16 object-cover"
+                                    />
+                                  </a>
+                                );
+                              }
+
                               return (
                                 <a
                                   key={index}
                                   href={link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="relative group overflow-hidden rounded-md border border-border hover:border-primary/50 transition-all"
+                                  className="flex items-center gap-2 text-xs bg-secondary/30 hover:bg-secondary px-2 py-1.5 rounded-md transition-colors text-foreground border border-transparent hover:border-border"
                                   title={link}
                                 >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={link}
-                                    alt="Attachment"
-                                    className="h-16 w-16 object-cover"
-                                  />
+                                  <div className="w-5 h-5">
+                                    <FileIconComponent url={link} />
+                                  </div>
+                                  <span className="truncate max-w-[300px] font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                    {link}
+                                  </span>
                                 </a>
                               );
-                            }
-
-                            return (
-                              <a
-                                key={index}
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs bg-secondary/30 hover:bg-secondary px-2 py-1.5 rounded-md transition-colors text-foreground border border-transparent hover:border-border"
-                                title={link}
-                              >
-                                <div className="w-5 h-5">
-                                  <FileIconComponent url={link} />
-                                </div>
-                                <span className="truncate max-w-[300px] font-medium text-blue-600 hover:text-blue-800 hover:underline">
-                                  {link}
-                                </span>
-                              </a>
-                            );
-                          })}
-                        </div>
-                      )}
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              );
-            })
+                  </Card>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6">
+              <AppPagination
+                page={pagination.page}
+                total={pagination.total}
+                limit={pagination.limit}
+                onChange={(newPage) =>
+                  setPagination((prev) => ({ ...prev, page: newPage }))
+                }
+                itemName="kế hoạch"
+                currentCount={plans.length}
+              />
+            </div>
           )}
         </div>
-
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="mt-6">
-            <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
-              itemName="kế hoạch"
-              currentCount={plans.length}
-            />
-          </div>
-        )}
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }

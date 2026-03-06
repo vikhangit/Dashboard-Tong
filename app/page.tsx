@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   ListTodo,
   ListChecks,
+  Settings,
 } from "lucide-react";
 
 import { VoiceRecorder } from "@/components/voice-recorder";
@@ -26,6 +27,8 @@ import { DashboardShortcut } from "@/components/dashboard-shortcut";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { ToolsDialog } from "@/components/tools-dialog";
+import { PermissionGuard } from "@/components/permission-guard";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +36,7 @@ import { Statistics } from "@/lib/types";
 import { useCachedFetch } from "@/hooks/use-cached-fetch";
 
 export default function HomePage() {
+  const { isAdmin } = useAuth();
   const {
     data: statistics,
     isLoading: loadingStats,
@@ -194,169 +198,193 @@ export default function HomePage() {
         {/* Dashboard Category Tiles - 2 rows x 4 columns */}
         <div className="px-4 pt-4 shrink-0">
           <div className="grid grid-cols-3 gap-2">
-            {/* Row 1 */}
+            <PermissionGuard permission="directives.view">
+              <DashboardShortcut
+                href="/directives"
+                icon={ClipboardList}
+                label="Chỉ đạo"
+                iconColor="text-purple-600"
+                count={statistics.directives.unseen_completed}
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/directives"
-              icon={ClipboardList}
-              label="Chỉ đạo"
-              iconColor="text-purple-600"
-              count={statistics.directives.unseen_completed}
-            />
+            <PermissionGuard permission="tasks.view">
+              <DashboardShortcut
+                href="/tasks"
+                icon={Briefcase}
+                label="Công việc"
+                iconColor="text-blue-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/tasks"
-              icon={Briefcase}
-              label="Công việc"
-              iconColor="text-blue-600"
-              // count={statistics.tasks.in_progress}
-            />
+            <PermissionGuard permission="projects.view">
+              <DashboardShortcut
+                href="/projects"
+                icon={FolderKanban}
+                label="Dự án"
+                iconColor="text-green-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/projects"
-              icon={FolderKanban}
-              label="Dự án"
-              iconColor="text-green-600"
-              // count={statistics.projects.active}
-            />
+            <PermissionGuard permission="proposals.view">
+              <DashboardShortcut
+                href="/proposals"
+                icon={Lightbulb}
+                label="Đề xuất"
+                iconColor="text-yellow-600"
+                count={statistics.proposals.submitted}
+              />
+            </PermissionGuard>
 
-            {/* Row 2 */}
-            <DashboardShortcut
-              href="/proposals"
-              icon={Lightbulb}
-              label="Đề xuất"
-              iconColor="text-yellow-600"
-              count={statistics.proposals.submitted}
-            />
+            <PermissionGuard permission="incidents.view">
+              <DashboardShortcut
+                href="/incidents"
+                icon={AlertTriangle}
+                label="Sự cố"
+                iconColor="text-red-600"
+                count={statistics.incidents.total}
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/incidents"
-              icon={AlertTriangle}
-              label="Sự cố"
-              iconColor="text-red-600"
-              count={statistics.incidents.total}
-            />
+            <PermissionGuard permission="plans.view">
+              <DashboardShortcut
+                href="/plans"
+                icon={Calendar}
+                label="Kế hoạch"
+                iconColor="text-teal-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/plans"
-              icon={Calendar}
-              label="Kế hoạch"
-              iconColor="text-teal-600"
-              // count={statistics.plans.active}
-            />
+            <PermissionGuard permission="revenue.view">
+              <DashboardShortcut
+                href="/revenue"
+                icon={Banknote}
+                label="Doanh thu"
+                iconColor="text-emerald-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/revenue"
-              icon={Banknote}
-              label="Doanh thu"
-              iconColor="text-emerald-600"
-              // count={statistics.revenue.thisMonth}
-            />
+            <PermissionGuard permission="checklist.view">
+              <DashboardShortcut
+                href="/checklist"
+                icon={ListChecks}
+                label="Checklist"
+                iconColor="text-indigo-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/checklist"
-              icon={ListChecks}
-              label="Checklist"
-              iconColor="text-indigo-600"
-            />
+            <PermissionGuard permission="analysis.view">
+              <DashboardShortcut
+                href="/analysis"
+                icon={BarChart3}
+                label="Phân tích"
+                iconColor="text-violet-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              href="/analysis"
-              icon={BarChart3}
-              label="Phân tích"
-              iconColor="text-violet-600"
-            />
+            <PermissionGuard permission="tools.view">
+              <DashboardShortcut
+                onClick={() => setShowToolsDialog(true)}
+                icon={LayoutGrid}
+                label="Tools"
+                iconColor="text-pink-600"
+              />
+            </PermissionGuard>
 
-            <DashboardShortcut
-              onClick={() => setShowToolsDialog(true)}
-              icon={LayoutGrid}
-              label="Tools"
-              iconColor="text-pink-600"
-            />
+            {isAdmin && (
+              <DashboardShortcut
+                href="/settings"
+                icon={Settings}
+                label="Cài đặt"
+                iconColor="text-slate-600"
+              />
+            )}
           </div>
         </div>
 
         {/* Main Content - Voice Only - Flex Grow to bottom */}
-        <div className="flex-1 flex flex-col justify-end items-center px-4 pb-4">
-          <div className="w-full max-w-sm flex flex-col items-center gap-4">
-            {/* Label */}
-            {!showDirectiveInput && !showSuccess && (
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
-                Chỉ đạo công việc
-              </h2>
-            )}
+        <PermissionGuard permission="directives.create">
+          <div className="flex-1 flex flex-col justify-end items-center px-4 pb-4">
+            <div className="w-full max-w-sm flex flex-col items-center gap-4">
+              {/* Label */}
+              {!showDirectiveInput && !showSuccess && (
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide text-center animate-in fade-in slide-in-from-bottom-2">
+                  Chỉ đạo công việc
+                </h2>
+              )}
 
-            {/* Success Message */}
-            {showSuccess && (
-              <div className="glass-card p-3 rounded-xl animate-in fade-in slide-in-from-bottom-4 shadow-lg">
-                <p className="text-sm font-medium text-green-700">
-                  Đã ghi nhận chỉ đạo thành công!
-                </p>
-              </div>
-            )}
-
-            {/* Transcript Editor */}
-            {showDirectiveInput && (
-              <div className="w-full animate-in fade-in slide-in-from-bottom-2 relative group shadow-lg rounded-xl">
-                <Textarea
-                  value={lastTranscript}
-                  onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[100px] p-3 pb-12 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
-                  placeholder="Nội dung chỉ đạo..."
-                />
-
-                {/* Close Button (Updated Title) */}
-                <Button
-                  onClick={handleCancelDirective}
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
-                  title="Đóng"
-                >
-                  <X className="size-5" />
-                </Button>
-
-                {/* Send Button & Clear Button */}
-                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
-                  <Button
-                    onClick={handleClearContent}
-                    size="sm"
-                    className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
-                    title="Xóa văn bản"
-                  >
-                    <Eraser className="h-4 w-4 mr-2" />
-                    Xóa
-                  </Button>
-
-                  <Button
-                    onClick={handleSendDirective}
-                    disabled={isSending}
-                    size="sm"
-                    className="h-7 px-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs"
-                  >
-                    {isSending ? (
-                      <>
-                        Đang gửi...{" "}
-                        <Loader2 className="ml-1 h-3 w-3 animate-spin" />
-                      </>
-                    ) : (
-                      <>
-                        Gửi <Send className="ml-1 h-3 w-3" />
-                      </>
-                    )}
-                  </Button>
+              {/* Success Message */}
+              {showSuccess && (
+                <div className="glass-card p-3 rounded-xl animate-in fade-in slide-in-from-bottom-4 shadow-lg">
+                  <p className="text-sm font-medium text-green-700">
+                    Đã ghi nhận chỉ đạo thành công!
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Voice Recorder - Always at the bottom of the stack */}
-            <div className="mt-2 text-center w-full flex justify-center">
-              <VoiceRecorder
-                onRecordingComplete={handleRecordingComplete}
-                isParentProcessing={isTranscribing}
-              />
+              {/* Transcript Editor */}
+              {showDirectiveInput && (
+                <div className="w-full animate-in fade-in slide-in-from-bottom-2 relative group shadow-lg rounded-xl">
+                  <Textarea
+                    value={lastTranscript}
+                    onChange={(e) => setLastTranscript(e.target.value)}
+                    className="min-h-[100px] p-3 pb-12 pr-10 rounded-xl bg-white/90 border-white/40 shadow-sm text-base text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                    placeholder="Nội dung chỉ đạo..."
+                  />
+
+                  {/* Close Button (Updated Title) */}
+                  <Button
+                    onClick={handleCancelDirective}
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Đóng"
+                  >
+                    <X className="size-5" />
+                  </Button>
+
+                  {/* Send Button & Clear Button */}
+                  <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                    <Button
+                      onClick={handleClearContent}
+                      size="sm"
+                      className="bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                      title="Xóa văn bản"
+                    >
+                      <Eraser className="h-4 w-4 mr-2" />
+                      Xóa
+                    </Button>
+
+                    <Button
+                      onClick={handleSendDirective}
+                      disabled={isSending}
+                      size="sm"
+                      className="h-7 px-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs"
+                    >
+                      {isSending ? (
+                        <>
+                          Đang gửi...{" "}
+                          <Loader2 className="ml-1 h-3 w-3 animate-spin" />
+                        </>
+                      ) : (
+                        <>
+                          Gửi <Send className="ml-1 h-3 w-3" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Voice Recorder - Always at the bottom of the stack */}
+              <div className="mt-2 text-center w-full flex justify-center">
+                <VoiceRecorder
+                  onRecordingComplete={handleRecordingComplete}
+                  isParentProcessing={isTranscribing}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </PermissionGuard>
 
         {/* Tools Dialog */}
         <ToolsDialog open={showToolsDialog} onOpenChange={setShowToolsDialog} />
@@ -380,80 +408,82 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Voice Recording Section - Only on Desktop */}
         {!isMobile && (
-          <div className="text-center mb-12">
-            {!showDirectiveInput && (
-              <h2 className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wide">
-                Chỉ đạo công việc
-              </h2>
-            )}
+          <PermissionGuard permission="directives.create">
+            <div className="text-center mb-12">
+              {!showDirectiveInput && (
+                <h2 className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wide">
+                  Chỉ đạo công việc
+                </h2>
+              )}
 
-            {/* Transcript Editor - Compact & Above Recorder (Desktop) */}
-            {showDirectiveInput && !isTranscribing && (
-              <div className="mb-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-2 relative">
-                <Textarea
-                  value={lastTranscript}
-                  onChange={(e) => setLastTranscript(e.target.value)}
-                  className="min-h-[150px] p-4 pb-14 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
-                  placeholder="Nội dung chỉ đạo..."
-                />
+              {/* Transcript Editor - Compact & Above Recorder (Desktop) */}
+              {showDirectiveInput && !isTranscribing && (
+                <div className="mb-6 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-2 relative">
+                  <Textarea
+                    value={lastTranscript}
+                    onChange={(e) => setLastTranscript(e.target.value)}
+                    className="min-h-[150px] p-4 pb-14 pr-12 rounded-xl bg-white/60 border-white/40 shadow-sm text-lg text-foreground resize-none focus:ring-1 focus:ring-primary/50 backdrop-blur-sm"
+                    placeholder="Nội dung chỉ đạo..."
+                  />
 
-                {/* Close Button (Updated Title) */}
-                <Button
-                  onClick={handleCancelDirective}
-                  size="icon"
-                  className="absolute top-2 right-2 h-10 w-10 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
-                  title="Đóng - Hủy bỏ"
-                >
-                  <X className="h-6 w-6" />
-                </Button>
-
-                {/* Send Button & Clear Button */}
-                <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+                  {/* Close Button (Updated Title) */}
                   <Button
-                    onClick={handleClearContent}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full px-4 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
-                    title="Xóa văn bản"
+                    onClick={handleCancelDirective}
+                    size="icon"
+                    className="absolute top-2 right-2 h-10 w-10 bg-slate-100/80 hover:bg-slate-200 text-slate-500 border border-slate-200 hover:text-slate-700 rounded-full shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                    title="Đóng - Hủy bỏ"
                   >
-                    <Eraser className="h-5 w-5 mr-2" />
-                    Xóa văn bản
+                    <X className="h-6 w-6" />
                   </Button>
 
-                  <Button
-                    onClick={handleSendDirective}
-                    disabled={isSending}
-                    className="h-8 px-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs font-medium"
-                  >
-                    {isSending ? (
-                      <>
-                        Đang gửi...{" "}
-                        <Loader2 className="ml-1 h-3 w-3 animate-spin" />
-                      </>
-                    ) : (
-                      <>
-                        Gửi chỉ đạo <Send className="ml-1 h-3 w-3" />
-                      </>
-                    )}
-                  </Button>
+                  {/* Send Button & Clear Button */}
+                  <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+                    <Button
+                      onClick={handleClearContent}
+                      className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full px-4 shadow-sm hover:shadow transition-all duration-200 active:scale-95 backdrop-blur-sm"
+                      title="Xóa văn bản"
+                    >
+                      <Eraser className="h-5 w-5 mr-2" />
+                      Xóa văn bản
+                    </Button>
+
+                    <Button
+                      onClick={handleSendDirective}
+                      disabled={isSending}
+                      className="h-8 px-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-sm rounded-full text-xs font-medium"
+                    >
+                      {isSending ? (
+                        <>
+                          Đang gửi...{" "}
+                          <Loader2 className="ml-1 h-3 w-3 animate-spin" />
+                        </>
+                      ) : (
+                        <>
+                          Gửi chỉ đạo <Send className="ml-1 h-3 w-3" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex justify-center mb-8 relative">
-              {/* Added relative here just in case, but desktop flow is less critical for fix as per user requirements for mobile 'pushing' */}
-              <VoiceRecorder
-                onRecordingComplete={handleRecordingComplete}
-                isParentProcessing={isTranscribing}
-              />
+              <div className="flex justify-center mb-8 relative">
+                {/* Added relative here just in case, but desktop flow is less critical for fix as per user requirements for mobile 'pushing' */}
+                <VoiceRecorder
+                  onRecordingComplete={handleRecordingComplete}
+                  isParentProcessing={isTranscribing}
+                />
+              </div>
+
+              {showSuccess && (
+                <div className="glass-card p-4 rounded-xl max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 mb-8">
+                  <p className="text-sm font-medium text-green-700">
+                    Đã ghi nhận chỉ đạo thành công!
+                  </p>
+                </div>
+              )}
             </div>
-
-            {showSuccess && (
-              <div className="glass-card p-4 rounded-xl max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 mb-8">
-                <p className="text-sm font-medium text-green-700">
-                  Đã ghi nhận chỉ đạo thành công!
-                </p>
-              </div>
-            )}
-          </div>
+          </PermissionGuard>
         )}
 
         {/* Statistics Grid */}

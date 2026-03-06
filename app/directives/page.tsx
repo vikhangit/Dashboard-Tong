@@ -37,6 +37,7 @@ import { StatusFilter } from "@/components/status-filter";
 import { CollapsibleSection } from "@/components/collapsible-section";
 import { AttachmentList } from "@/components/attachment-list";
 import { MarkAsReadButton } from "@/components/mark-as-read-button";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PermissionGuard } from "@/components/permission-guard";
 
 const statusConfig = {
   completed: {
@@ -194,223 +196,231 @@ export default function DirectivesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background/50">
-      {/* Header */}
-      <PageHeader
-        title="Chỉ đạo"
-        icon={<ClipboardList className="size-6 text-purple-600" />}
-      >
-        <ReloadButton onReload={fetchDirectives} className="mr-2" />
-        <Button
-          size="sm"
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
-            isRecording
-              ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
-              : isTranscribing
-                ? "bg-blue-500 cursor-wait"
-                : "shadow-primary/20"
-          }`}
+    <PagePermissionGuard permission="directives.view">
+      <div className="min-h-screen bg-background/50">
+        {/* Header */}
+        <PageHeader
+          title="Chỉ đạo"
+          icon={<ClipboardList className="size-6 text-purple-600" />}
         >
-          {isRecording ? (
-            <>
-              <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
-              Đang nghe...
-            </>
-          ) : isTranscribing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Đang xử lý...
-            </>
-          ) : (
-            <>
-              <Mic className="h-4 w-4" />
-              <span className="hidden sm:inline">Chỉ đạo</span>
-            </>
-          )}
-        </Button>
+          <ReloadButton onReload={fetchDirectives} className="mr-2" />
+          <PermissionGuard permission="directives.create">
+            <Button
+              size="sm"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`gap-2 rounded-full shadow-lg transition-all duration-300 ${
+                isRecording
+                  ? "bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-red-500/20"
+                  : isTranscribing
+                    ? "bg-blue-500 cursor-wait"
+                    : "shadow-primary/20"
+              }`}
+            >
+              {isRecording ? (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-white animate-ping mr-1" />
+                  Đang nghe...
+                </>
+              ) : isTranscribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  <span className="hidden sm:inline">Chỉ đạo</span>
+                </>
+              )}
+            </Button>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="content">Nội dung chỉ đạo</Label>
-                <Textarea
-                  id="content"
-                  placeholder="Nhập nội dung chỉ đạo..."
-                  value={newDirective.content}
-                  onChange={(e) =>
-                    setNewDirective({
-                      ...newDirective,
-                      content: e.target.value,
-                    })
-                  }
-                  rows={4}
-                  className="resize-none"
-                />
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Thêm chỉ đạo mới</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Nội dung chỉ đạo</Label>
+                    <Textarea
+                      id="content"
+                      placeholder="Nhập nội dung chỉ đạo..."
+                      value={newDirective.content}
+                      onChange={(e) =>
+                        setNewDirective({
+                          ...newDirective,
+                          content: e.target.value,
+                        })
+                      }
+                      rows={4}
+                      className="resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      onClick={handleAddDirective}
+                      disabled={submitting || !newDirective.content.trim()}
+                    >
+                      {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </PermissionGuard>
+        </PageHeader>
+
+        {/* Content */}
+        <div className="container mx-auto px-4 py-6 max-w-3xl">
+          <StatusFilter
+            filter={filter}
+            onFilterChange={(value) =>
+              setFilter(value as "all" | Directive["status"])
+            }
+            config={statusConfig}
+            totalCount={directives.length}
+            counts={directives.reduce(
+              (acc, d) => {
+                const status = d.status as string;
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="mb-6"
+          />
+
+          {/* Directives List */}
+          <div className="space-y-3">
+            {loading && directives.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
               </div>
-              <div className="flex gap-2 justify-end pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  onClick={handleAddDirective}
-                  disabled={submitting || !newDirective.content.trim()}
-                >
-                  {submitting ? "Đang lưu..." : "Thêm chỉ đạo"}
-                </Button>
+            ) : filteredDirectives.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                  <FileText className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <p className="text-muted-foreground">Không có chỉ đạo nào</p>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </PageHeader>
+            ) : (
+              paginatedDirectives.map((directive) => {
+                const config =
+                  statusConfig[directive.status] || statusConfig.pending;
+                const StatusIcon = config.icon;
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <StatusFilter
-          filter={filter}
-          onFilterChange={(value) =>
-            setFilter(value as "all" | Directive["status"])
-          }
-          config={statusConfig}
-          totalCount={directives.length}
-          counts={directives.reduce(
-            (acc, d) => {
-              const status = d.status as string;
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          )}
-          className="mb-6"
-        />
-
-        {/* Directives List */}
-        <div className="space-y-3">
-          {loading && directives.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-            </div>
-          ) : filteredDirectives.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-              <p className="text-muted-foreground">Không có chỉ đạo nào</p>
-            </div>
-          ) : (
-            paginatedDirectives.map((directive) => {
-              const config =
-                statusConfig[directive.status] || statusConfig.pending;
-              const StatusIcon = config.icon;
-
-              return (
-                <div
-                  key={directive.id}
-                  className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
-                >
+                return (
                   <div
-                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
-                  />
+                    key={directive.id}
+                    className="group relative bg-card hover:bg-accent/5 transition-colors border rounded-xl overflow-hidden shadow-sm"
+                  >
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                    />
 
-                  <div className="p-4 pl-5">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
-                        >
-                          <StatusIcon className="w-3 h-3 mr-1" />
-                          {config.label}
-                        </Badge>
+                    <div className="p-4 pl-5">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className={`font-normal ${config.color} text-sm text-white px-2 py-0.5 h-7`}
+                          >
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-base text-muted-foreground flex items-center gap-1">
+                            {formatShortDateTime(directive.createdAt)}
+                          </span>
+                          <PermissionGuard permission="directives.update_status">
+                            {directive.status === "completed" &&
+                              !directive.seen && (
+                                <MarkAsReadButton
+                                  id={directive.id}
+                                  endpoint="/api/directives"
+                                  onSuccess={() =>
+                                    handleMarkAsReadSuccess(directive.id)
+                                  }
+                                />
+                              )}
+                          </PermissionGuard>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-base text-muted-foreground flex items-center gap-1">
-                          {formatShortDateTime(directive.createdAt)}
-                        </span>
-                        {directive.status === "completed" &&
-                          !directive.seen && (
-                            <MarkAsReadButton
-                              id={directive.id}
-                              endpoint="/api/directives"
-                              onSuccess={() =>
-                                handleMarkAsReadSuccess(directive.id)
-                              }
-                            />
-                          )}
+                      <div className="mb-3">
+                        <ExpandableText
+                          text={directive.content}
+                          className="text-xl text-foreground leading-relaxed font-medium"
+                        />
                       </div>
-                    </div>
 
-                    <div className="mb-3">
-                      <ExpandableText
-                        text={directive.content}
-                        className="text-xl text-foreground leading-relaxed font-medium"
-                      />
-                    </div>
-
-                    {directive.actionContent && (
-                      <CollapsibleSection title="Chi tiết xử lý">
-                        <p className="text-foreground/90 whitespace-pre-wrap text-lg">
-                          {directive.actionContent}
-                        </p>
-                      </CollapsibleSection>
-                    )}
-
-                    {directive.attachment &&
-                      directive.attachment.length > 0 && (
-                        <CollapsibleSection
-                          title="Minh chứng"
-                          defaultOpen={true}
-                        >
-                          <AttachmentList attachments={directive.attachment} />
+                      {directive.actionContent && (
+                        <CollapsibleSection title="Chi tiết xử lý">
+                          <p className="text-foreground/90 whitespace-pre-wrap text-lg">
+                            {directive.actionContent}
+                          </p>
                         </CollapsibleSection>
                       )}
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-400">
-                      {directive.assignedTo && (
-                        <span className="flex items-center gap-1 font-medium text-foreground/80 text-base">
-                          <User className="w-3.5 h-3.5" />
-                          {directive.assignedTo}
-                        </span>
-                      )}
-                      {directive.deadline && (
-                        <span className="flex items-center gap-1 text-red-500 font-medium text-base">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {formatDate(directive.deadline)}
-                        </span>
-                      )}
+                      {directive.attachment &&
+                        directive.attachment.length > 0 && (
+                          <CollapsibleSection
+                            title="Minh chứng"
+                            defaultOpen={true}
+                          >
+                            <AttachmentList
+                              attachments={directive.attachment}
+                            />
+                          </CollapsibleSection>
+                        )}
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-400">
+                        {directive.assignedTo && (
+                          <span className="flex items-center gap-1 font-medium text-foreground/80 text-base">
+                            <User className="w-3.5 h-3.5" />
+                            {directive.assignedTo}
+                          </span>
+                        )}
+                        {directive.deadline && (
+                          <span className="flex items-center gap-1 text-red-500 font-medium text-base">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {formatDate(directive.deadline)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6">
+              <AppPagination
+                page={pagination.page}
+                total={pagination.total}
+                limit={pagination.limit}
+                onChange={(newPage) =>
+                  setPagination((prev) => ({ ...prev, page: newPage }))
+                }
+                itemName="chỉ đạo"
+                currentCount={paginatedDirectives.length}
+              />
+            </div>
           )}
         </div>
-
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="mt-6">
-            <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
-              itemName="chỉ đạo"
-              currentCount={paginatedDirectives.length}
-            />
-          </div>
-        )}
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   Bot,
   Bell,
@@ -8,6 +10,7 @@ import {
   AlertTriangle,
   Lightbulb,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { formatDateTime, formatShortDateTime, cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NotificationItem {
   id: string;
@@ -36,9 +40,25 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, backHref }: AppHeaderProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await axios.post("/api/auth/logout");
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -113,10 +133,20 @@ export function AppHeader({ title, backHref }: AppHeaderProps) {
                 <div className="text-lg font-bold text-foreground">{title}</div>
               ) : (
                 <div className="text-base font-semibold text-primary">
-                  APEC GLOBAL
+                  {user?.name || "APEC GLOBAL"}
                 </div>
               )}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-9 w-9 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              title="Đăng xuất"
+            >
+              <LogOut className="size-5" />
+            </Button>
           </div>
 
           <div className="flex items-center gap-1">

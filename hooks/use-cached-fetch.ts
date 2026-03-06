@@ -71,8 +71,20 @@ export function useCachedFetch<T>(
 
     fetchData();
 
+    const handleFocusOrVisible = () => {
+      // Only refetch if window gains focus or visibility
+      if (document.visibilityState === "visible" && document.hasFocus()) {
+        fetchData();
+      }
+    };
+
+    window.addEventListener("visibilitychange", handleFocusOrVisible);
+    window.addEventListener("focus", handleFocusOrVisible);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("visibilitychange", handleFocusOrVisible);
+      window.removeEventListener("focus", handleFocusOrVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, url]);

@@ -25,6 +25,7 @@ import axios from "axios";
 import { Task, EmployeeTask, ApiResponse } from "@/lib/types";
 import { format } from "date-fns";
 import { ReloadButton } from "@/components/reload-button";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const statusConfig: Record<
   string,
@@ -514,42 +515,48 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState("assigned");
 
   return (
-    <div className="min-h-screen gradient-holographic">
-      <PageHeader
-        title="Công việc"
-        icon={<Briefcase className="size-6 text-blue-600" />}
-      />
+    <PagePermissionGuard permission="tasks.view">
+      <div className="min-h-screen gradient-holographic">
+        <PageHeader
+          title="Công việc"
+          icon={<Briefcase className="size-6 text-blue-600" />}
+        />
 
-      <div className="container mx-auto px-4 py-3 max-w-3xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-1">
-            <TabsList className="w-full sm:w-[400px] bg-gradient-to-r from-slate-900 to-slate-800 p-1 rounded-md h-10 flex gap-1 border border-slate-700/50 shadow-lg mx-auto">
-              <TabsTrigger
-                value="assigned"
-                className="flex-1 rounded-sm text-sm font-medium transition-all duration-300 text-slate-300 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center justify-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Nhân viên
-              </TabsTrigger>
-              <TabsTrigger
-                value="created"
-                className="flex-1 rounded-sm text-sm font-medium transition-all duration-300 text-slate-300 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center justify-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Quản lý
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <div className="container mx-auto px-4 py-3 max-w-3xl">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <div className="flex justify-center mb-1">
+              <TabsList className="w-full sm:w-[400px] bg-gradient-to-r from-slate-900 to-slate-800 p-1 rounded-md h-10 flex gap-1 border border-slate-700/50 shadow-lg mx-auto">
+                <TabsTrigger
+                  value="assigned"
+                  className="flex-1 rounded-sm text-sm font-medium transition-all duration-300 text-slate-300 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center justify-center gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  Nhân viên
+                </TabsTrigger>
+                <TabsTrigger
+                  value="created"
+                  className="flex-1 rounded-sm text-sm font-medium transition-all duration-300 text-slate-300 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center justify-center gap-2"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Quản lý
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <TabsContent value="assigned" className="mt-0">
-            <AssignedTasksTab />
-          </TabsContent>
+            <TabsContent value="assigned" className="mt-0">
+              <AssignedTasksTab />
+            </TabsContent>
 
-          <TabsContent value="created" className="mt-0">
-            <CreatedTasksTab />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="created" className="mt-0">
+              <CreatedTasksTab />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }

@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ReloadButton } from "@/components/reload-button";
+import { PagePermissionGuard } from "@/components/page-permission-guard";
 
 const statusConfig: Record<
   string,
@@ -211,194 +212,196 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-holographic">
-      <PageHeader
-        title="Dự án"
-        icon={<FolderKanban className="size-6 text-blue-600" />}
-      >
-        <ReloadButton onReload={() => fetchProjects(false)} />
-      </PageHeader>
+    <PagePermissionGuard permission="projects.view">
+      <div className="min-h-screen gradient-holographic">
+        <PageHeader
+          title="Dự án"
+          icon={<FolderKanban className="size-6 text-blue-600" />}
+        >
+          <ReloadButton onReload={() => fetchProjects(false)} />
+        </PageHeader>
 
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        {/* Search */}
-        <div className="mb-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600 z-10" />
-          <Input
-            placeholder="Tìm kiếm dự án..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white backdrop-blur-sm border-muted/40"
-          />
-        </div>
+        <div className="container mx-auto px-4 py-6 max-w-3xl">
+          {/* Search */}
+          <div className="mb-4 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600 z-10" />
+            <Input
+              placeholder="Tìm kiếm dự án..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white backdrop-blur-sm border-muted/40"
+            />
+          </div>
 
-        {/* Filters */}
-        <StatusFilter
-          filter={statusFilter}
-          onFilterChange={(value) => {
-            setStatusFilter(value);
-            setPagination((prev) => ({ ...prev, page: 1 }));
-          }}
-          config={statusConfig}
-          totalCount={allProjects.length}
-          counts={allProjects.reduce(
-            (acc, project) => {
-              const status = getProjectStatusKey(project);
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            },
-            {} as Record<string, number>,
-          )}
-          className="mb-3 flex-wrap"
-        />
-
-        {/* Department Filter */}
-        <div className="mb-6">
-          <Select
-            value={departmentFilter}
-            onValueChange={(value) => {
-              setDepartmentFilter(value);
+          {/* Filters */}
+          <StatusFilter
+            filter={statusFilter}
+            onFilterChange={(value) => {
+              setStatusFilter(value);
               setPagination((prev) => ({ ...prev, page: 1 }));
             }}
-          >
-            <SelectTrigger className="w-full sm:w-[250px] bg-white backdrop-blur-sm border-muted/40">
-              <SelectValue placeholder="Chọn phòng ban" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả phòng ban</SelectItem>
-              {uniqueDepartments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.id.toString()}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            config={statusConfig}
+            totalCount={allProjects.length}
+            counts={allProjects.reduce(
+              (acc, project) => {
+                const status = getProjectStatusKey(project);
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            )}
+            className="mb-3 flex-wrap"
+          />
 
-        {/* Projects List */}
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-            </div>
-          ) : projects.length === 0 ? (
-            <Card className="glass-card p-12 text-center">
-              <FolderKanban className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Không có dự án nào</p>
-            </Card>
-          ) : (
-            projects.map((project) => {
-              const config = getStatusConfig(project);
-              const StatusIcon = config.icon || AlertCircle;
+          {/* Department Filter */}
+          <div className="mb-6">
+            <Select
+              value={departmentFilter}
+              onValueChange={(value) => {
+                setDepartmentFilter(value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[250px] bg-white backdrop-blur-sm border-muted/40">
+                <SelectValue placeholder="Chọn phòng ban" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả phòng ban</SelectItem>
+                {uniqueDepartments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id.toString()}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              return (
-                <div
-                  key={project.id}
-                  onClick={() => {
-                    setLoadingId(project.id);
-                    router.push(`/projects/${project.id}`);
-                  }}
-                  className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer"
-                >
-                  {loadingId === project.id && (
-                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center">
-                      <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    </div>
-                  )}
+          {/* Projects List */}
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+              </div>
+            ) : projects.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <FolderKanban className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Không có dự án nào</p>
+              </Card>
+            ) : (
+              projects.map((project) => {
+                const config = getStatusConfig(project);
+                const StatusIcon = config.icon || AlertCircle;
+
+                return (
                   <div
-                    className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
-                  />
+                    key={project.id}
+                    onClick={() => {
+                      setLoadingId(project.id);
+                      router.push(`/projects/${project.id}`);
+                    }}
+                    className="group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer"
+                  >
+                    {loadingId === project.id && (
+                      <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                      </div>
+                    )}
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`}
+                    />
 
-                  <div className="p-4 pl-5">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <Badge
-                        variant="secondary"
-                        className={`font-normal ${config.color} text-white px-2 py-0.5 h-6 text-xs`}
-                      >
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                      <span className="text-xs text-blue-500 font-medium">
-                        Xem chi tiết
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-medium text-foreground leading-snug mb-2 line-clamp-2">
-                      {project.name}
-                    </h3>
-
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                      {project.description}
-                    </p>
-
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-blue-500" />
-                      <span>
-                        {project.start_date
-                          ? format(new Date(project.start_date), "dd/MM/yyyy")
-                          : "N/A"}
-                      </span>
-                      {project.end_date && (
-                        <>
-                          <span>-</span>
-                          <span>
-                            {format(new Date(project.end_date), "dd/MM/yyyy")}
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2 mb-4">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-orange-500" />
-                        <span>{project.members?.length || 0} thành viên</span>
+                    <div className="p-4 pl-5">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <Badge
+                          variant="secondary"
+                          className={`font-normal ${config.color} text-white px-2 py-0.5 h-6 text-xs`}
+                        >
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {config.label}
+                        </Badge>
+                        <span className="text-xs text-blue-500 font-medium">
+                          Xem chi tiết
+                        </span>
                       </div>
 
+                      <h3 className="text-lg font-medium text-foreground leading-snug mb-2 line-clamp-2">
+                        {project.name}
+                      </h3>
+
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                        {project.description}
+                      </p>
+
                       <div className="flex items-center gap-1.5">
-                        <Building className="w-4 h-4 text-indigo-500" />
+                        <Calendar className="w-4 h-4 text-blue-500" />
                         <span>
-                          {project.departments?.length || 0} phòng ban
+                          {project.start_date
+                            ? format(new Date(project.start_date), "dd/MM/yyyy")
+                            : "N/A"}
+                        </span>
+                        {project.end_date && (
+                          <>
+                            <span>-</span>
+                            <span>
+                              {format(new Date(project.end_date), "dd/MM/yyyy")}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2 mb-4">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-orange-500" />
+                          <span>{project.members?.length || 0} thành viên</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Building className="w-4 h-4 text-indigo-500" />
+                          <span>
+                            {project.departments?.length || 0} phòng ban
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden flex-1">
+                          <div
+                            className={`h-full ${project.progress === 100 ? "bg-green-500" : "bg-primary"}`}
+                            style={{ width: `${project.progress}%` }}
+                          />
+                        </div>
+                        <span
+                          className={`text-sm font-medium min-w-[30px] text-right ${project.progress === 100 ? "text-green-600" : "text-blue-600"}`}
+                        >
+                          {project.progress}%
                         </span>
                       </div>
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden flex-1">
-                        <div
-                          className={`h-full ${project.progress === 100 ? "bg-green-500" : "bg-primary"}`}
-                          style={{ width: `${project.progress}%` }}
-                        />
-                      </div>
-                      <span
-                        className={`text-sm font-medium min-w-[30px] text-right ${project.progress === 100 ? "text-green-600" : "text-blue-600"}`}
-                      >
-                        {project.progress}%
-                      </span>
-                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <div className="mt-6">
+              <AppPagination
+                page={pagination.page}
+                total={pagination.total}
+                limit={pagination.limit}
+                onChange={(newPage) =>
+                  setPagination((prev) => ({ ...prev, page: newPage }))
+                }
+                itemName="dự án"
+                currentCount={projects.length}
+              />
+            </div>
           )}
         </div>
-
-        {/* Pagination */}
-        {pagination.total > 0 && (
-          <div className="mt-6">
-            <AppPagination
-              page={pagination.page}
-              total={pagination.total}
-              limit={pagination.limit}
-              onChange={(newPage) =>
-                setPagination((prev) => ({ ...prev, page: newPage }))
-              }
-              itemName="dự án"
-              currentCount={projects.length}
-            />
-          </div>
-        )}
       </div>
-    </div>
+    </PagePermissionGuard>
   );
 }
