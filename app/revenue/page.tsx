@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
 import {
@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -398,6 +399,9 @@ export default function RevenuePage() {
       currency: "VND",
     }).format(val);
 
+  const formatNumber = (val: number) =>
+    new Intl.NumberFormat("vi-VN").format(val);
+
   const formatLargeCurrency = (val: number) => {
     if (val >= 1_000_000_000) {
       // 1.5 Tỷ, 1 Tỷ
@@ -611,9 +615,11 @@ export default function RevenuePage() {
                         <ChevronRight className="w-4 h-4" />
                       )}
                     </button>
+                    <Separator className="my-1 bg-gray-300/50" />
 
                     {projectStats.map((project) => (
-                      <button
+                      <Fragment key={project.name}>
+                        <button
                         key={project.name}
                         onClick={() => setSelectedProject(project.name)}
                         className={cn(
@@ -634,10 +640,10 @@ export default function RevenuePage() {
                           >
                             {project.name.charAt(0).toUpperCase()}
                           </div>
-                          <div className="flex items-center justify-between flex-1 overflow-hidden">
+                          <div className="flex flex-col flex-1 overflow-hidden">
                             <span
                               className={cn(
-                                "truncate text-lg mr-2",
+                                "truncate text-lg",
                                 selectedProject === project.name
                                   ? "text-white"
                                   : "text-blue-700",
@@ -645,16 +651,16 @@ export default function RevenuePage() {
                             >
                               {project.name}
                             </span>
-                            <div className="flex items-center justify-end gap-2 shrink-0">
+                            <div className="flex items-center gap-2">
                               <span
                                 className={cn(
-                                  "text-lg font-bold",
+                                  "text-base font-bold",
                                   selectedProject === project.name
                                     ? "text-primary-foreground/90"
-                                    : "text-muted-foreground",
+                                    : "text-muted-foreground font-semibold",
                                 )}
                               >
-                                {formatLargeCurrency(project.total)}
+                                {formatNumber(project.total)}
                               </span>
                               {project.growth !== 0 && (
                                 <span
@@ -684,7 +690,9 @@ export default function RevenuePage() {
                           <ChevronRight className="w-4 h-4 shrink-0 ml-1" />
                         )}
                       </button>
-                    ))}
+                      <Separator className="my-1 last:hidden bg-gray-300/50" />
+                    </Fragment>
+                  ))}
 
                     {loading && data.length === 0 && (
                       <div className="px-4 py-8 flex justify-center">
