@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Briefcase, Search, Calendar, User } from "lucide-react";
@@ -91,6 +91,12 @@ function SharedTaskCard({
   return (
     <Link
       href={href}
+      onClick={() => {
+        if (typeof window !== "undefined") {
+          const tab = sessionStorage.getItem("tasks_activeTab") || "assigned";
+          sessionStorage.setItem(`tasks_scroll_y_${tab}`, String(window.scrollY));
+        }
+      }}
       className="block group relative bg-card hover:bg-accent/5 transition-all duration-300 border rounded-xl overflow-hidden shadow-sm hover:shadow-md mb-5"
     >
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${config.color}`} />
@@ -227,7 +233,15 @@ interface SharedTasksTabProps<T> {
   getCreatedAt: (item: T) => string | undefined;
   assigneeRoleLabel: string;
   assigneeRolePlaceholder: string;
+  tabId: string;
 }
+
+const getInitialState = (key: string, defaultValue: string) => {
+  if (typeof window !== "undefined") {
+    return sessionStorage.getItem(key) || defaultValue;
+  }
+  return defaultValue;
+};
 
 function SharedTasksTab<
   T extends {
@@ -242,30 +256,97 @@ function SharedTasksTab<
   getCreatedAt,
   assigneeRoleLabel,
   assigneeRolePlaceholder,
+  tabId,
 }: SharedTasksTabProps<T>) {
-  const [allItems, setAllItems] = useState<T[]>([]);
-  const [filteredItems, setFilteredItems] = useState<T[]>([]);
-  const [displayedItems, setDisplayedItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [allItems, setAllItems] = useState<T[]>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem(`tasks_${tabId}_data`);
+      if (cached) {
+        try { return JSON.parse(cached); } catch(e) {}
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(allItems.length === 0);
+  
+  const isFirstMount = useRef(true);
+
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem(`tasks_${tabId}_page`);
+      return saved ? Number(saved) : 1;
+    }
+    return 1;
+  });
+  
   const limit = 10;
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [projectFilter, setProjectFilter] = useState<string>("all");
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<DateFilterValue | null>(null);
+  const [search, setSearch] = useState(() => getInitialState(`tasks_${tabId}_search`, ""));
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  
+  const [statusFilter, setStatusFilter] = useState<string>(() => getInitialState(`tasks_${tabId}_status`, "all"));
+  const [projectFilter, setProjectFilter] = useState<string>(() => getInitialState(`tasks_${tabId}_project`, "all"));
+  const [assigneeFilter, setAssigneeFilter] = useState<string>(() => getInitialState(`tasks_${tabId}_assignee`, "all"));
+  const [dateFilter, setDateFilter] = useState<DateFilterValue | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem(`tasks_${tabId}_dateFilter`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return { mode: parsed.mode, date: new Date(parsed.date) };
+        } catch (e) {}
+      }
+    }
+    return null;
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    sessionStorage.setItem(`tasks_${tabId}_page`, String(currentPage));
+  }, [currentPage, tabId]);
+  
+  useEffect(() => {
+    sessionStorage.setItem(`tasks_${tabId}_search`, search);
+  }, [search, tabId]);
+  
+  useEffect(() => {
+    sessionStorage.setItem(`tasks_${tabId}_status`, statusFilter);
+  }, [statusFilter, tabId]);
+  
+  useEffect(() => {
+    sessionStorage.setItem(`tasks_${tabId}_project`, projectFilter);
+  }, [projectFilter, tabId]);
+  
+  useEffect(() => {
+    sessionStorage.setItem(`tasks_${tabId}_assignee`, assigneeFilter);
+  }, [assigneeFilter, tabId]);
+  
+  useEffect(() => {
+    if (dateFilter) {
+      sessionStorage.setItem(`tasks_${tabId}_dateFilter`, JSON.stringify({ mode: dateFilter.mode, date: dateFilter.date.toISOString() }));
+    } else {
+      sessionStorage.removeItem(`tasks_${tabId}_dateFilter`);
+    }
+  }, [dateFilter, tabId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (search !== debouncedSearch) {
+        setDebouncedSearch(search);
+        setCurrentPage(1);
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, debouncedSearch]);
 
   useEffect(() => {
-    fetchItems();
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      fetchItems(false);
+    } else {
+      fetchItems(true);
+    }
   }, [debouncedSearch]);
 
-  useEffect(() => {
+  const filteredItems = useMemo(() => {
     let filtered = [...allItems];
     if (statusFilter !== "all")
       filtered = filtered.filter((t) => String(t.status.id) === statusFilter);
@@ -289,26 +370,24 @@ function SharedTasksTab<
             itemDate.getDate() === dateFilter.date.getDate()
           );
         }
-        // month mode
         return (
           itemDate.getFullYear() === dateFilter.date.getFullYear() &&
           itemDate.getMonth() === dateFilter.date.getMonth()
         );
       });
     }
-
-    setFilteredItems(filtered);
-    setCurrentPage(1);
+    return filtered;
   }, [allItems, statusFilter, projectFilter, assigneeFilter, dateFilter]);
 
-  useEffect(() => {
+  const displayedItems = useMemo(() => {
     const start = (currentPage - 1) * limit;
-    setDisplayedItems(filteredItems.slice(start, start + limit));
+    return filteredItems.slice(start, start + limit);
   }, [filteredItems, currentPage]);
 
-  const fetchItems = async (showLoading = true) => {
+
+  const fetchItems = async (isBackgroundRefresh = false) => {
     try {
-      if (showLoading) setLoading(true);
+      if (!isBackgroundRefresh && allItems.length === 0) setLoading(true);
       const res = await axios.get<ApiResponse<T>>(
         `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
         {
@@ -319,7 +398,10 @@ function SharedTasksTab<
           },
         },
       );
-      if (res.data.success) setAllItems(res.data.data.rows);
+      if (res.data.success) {
+        setAllItems(res.data.data.rows);
+        sessionStorage.setItem(`tasks_${tabId}_data`, JSON.stringify(res.data.data.rows));
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
@@ -359,7 +441,7 @@ function SharedTasksTab<
       <div className="flex flex-col gap-4 mb-6">
         <StatusFilter
           filter={statusFilter}
-          onFilterChange={setStatusFilter}
+          onFilterChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
           config={statusConfig}
           order={["3", "5", "2", "4"]}
           totalCount={allItems.length}
@@ -375,7 +457,7 @@ function SharedTasksTab<
         />
 
         <div className="grid grid-cols-2 gap-3">
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
+          <Select value={projectFilter} onValueChange={(val) => { setProjectFilter(val); setCurrentPage(1); }}>
             <SelectTrigger className="w-full bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700 hover:bg-gray-100/80 transition-colors h-10">
               <div className="flex items-center gap-2 flex-1 text-left min-w-0 w-full">
                 <Briefcase className="w-4 h-4 shrink-0 text-blue-600" />
@@ -407,7 +489,7 @@ function SharedTasksTab<
             </SelectContent>
           </Select>
 
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <Select value={assigneeFilter} onValueChange={(val) => { setAssigneeFilter(val); setCurrentPage(1); }}>
             <SelectTrigger className="w-full bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700 hover:bg-gray-100/80 transition-colors h-10">
               <div className="flex items-center gap-2 flex-1 text-left min-w-0 w-full">
                 <User className="w-4 h-4 shrink-0 text-green-600" />
@@ -474,7 +556,7 @@ function SharedTasksTab<
         </div>
       )}
 
-      <DateFilterButton value={dateFilter} onChange={setDateFilter} />
+      <DateFilterButton value={dateFilter} onChange={(val) => { setDateFilter(val); setCurrentPage(1); }} />
     </div>
   );
 }
@@ -485,6 +567,7 @@ function CreatedTasksTab() {
   return (
     <SharedTasksTab<Task>
       endpoint="/api/v1/tasks/outside"
+      tabId="created_tasks"
       renderItem={(task) => <CreatedTaskCard key={task.id} task={task} />}
       getAssignee={(task) => task.assignee}
       getCreatedAt={(task) => task.created_at}
@@ -500,6 +583,7 @@ function AssignedTasksTab() {
   return (
     <SharedTasksTab<EmployeeTask>
       endpoint="/api/v1/tasks/employees/outside"
+      tabId="assigned_tasks"
       renderItem={(item) => <EmployeeTaskCard key={item.id} item={item} />}
       getAssignee={(item) => item.employee}
       getCreatedAt={(item) => item.created_at}
@@ -512,7 +596,35 @@ function AssignedTasksTab() {
 // ─── Main Page ───────────────────────────────────────────────────
 
 export default function TasksPage() {
-  const [activeTab, setActiveTab] = useState("assigned");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("tasks_activeTab") || "assigned";
+    }
+    return "assigned";
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("tasks_activeTab", activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const restoreScroll = () => {
+      const savedScroll = sessionStorage.getItem(`tasks_scroll_y_${activeTab}`);
+      if (savedScroll) {
+        window.scrollTo(0, parseInt(savedScroll, 10));
+      }
+    };
+
+    // Use requestAnimationFrame or slight timeout to ensure layouts settle
+    let timer: any;
+    if (typeof window !== "undefined") {
+        timer = setTimeout(restoreScroll, 100);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [activeTab]);
 
   return (
     <PagePermissionGuard permission="tasks.view">
