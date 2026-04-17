@@ -6,7 +6,6 @@ const SECRET = new TextEncoder().encode(
 );
 
 const COOKIE_NAME = "session_token";
-const EXPIRATION = "7d"; // 7 days
 
 export interface SessionPayload {
   userId: string;
@@ -19,7 +18,6 @@ export async function signToken(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(EXPIRATION)
     .sign(SECRET);
 }
 
