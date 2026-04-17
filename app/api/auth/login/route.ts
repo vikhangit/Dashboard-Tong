@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
+      maxAge: 60 * 60 * 24 * 400, // 400 days (browser limit)
       path: "/",
     });
 

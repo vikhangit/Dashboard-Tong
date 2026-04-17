@@ -29,7 +29,19 @@ export async function middleware(request: NextRequest) {
 
   try {
     await jwtVerify(token, SECRET);
-    return NextResponse.next();
+    
+    // Tự động gia hạn cookie mỗi khi người dùng hoạt động để "đăng nhập mãi mãi"
+    // (Vượt qua giới hạn 400 ngày của trình duyệt bằng cách reset thời gian mỗi lần truy cập)
+    // Vì chủ tịch không nhớ password
+    const response = NextResponse.next();
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 400, // 400 days (browser limit)
+      path: "/",
+    });
+    return response;
   } catch {
     // Invalid or expired token
     const loginUrl = new URL("/login", request.url);
