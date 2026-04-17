@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -96,33 +96,83 @@ const getStatusConfig = (project: Project) => {
   );
 };
 
+const getInitialState = (key: string, defaultValue: string) => {
+  if (typeof window !== "undefined") {
+    return sessionStorage.getItem(key) || defaultValue;
+  }
+  return defaultValue;
+};
+
 export default function ProjectsPage() {
   const router = useRouter();
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]); // Displayed projects (paginated)
-  const [loading, setLoading] = useState(true);
-  const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    total_pages: 0,
+  const [allProjects, setAllProjects] = useState<Project[]>(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem('projects_data');
+      if (cached) {
+        try { return JSON.parse(cached); } catch(e) {}
+      }
+    }
+    return [];
   });
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [projects, setProjects] = useState<Project[]>([]); 
+  const [loading, setLoading] = useState(allProjects.length === 0);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  
+  const [pagination, setPagination] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem('projects_page');
+      return { page: saved ? Number(saved) : 1, limit: 10, total: 0, total_pages: 0 };
+    }
+    return { page: 1, limit: 10, total: 0, total_pages: 0 };
+  });
+  
+  const [search, setSearch] = useState(() => getInitialState('projects_search', ''));
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [statusFilter, setStatusFilter] = useState<string>(() => getInitialState('projects_status', 'all'));
+  const [departmentFilter, setDepartmentFilter] = useState<string>(() => getInitialState('projects_department', 'all'));
+
+  const isFirstMount = useRef(true);
+
+  useEffect(() => { sessionStorage.setItem('projects_page', String(pagination.page)); }, [pagination.page]);
+  useEffect(() => { sessionStorage.setItem('projects_search', search); }, [search]);
+  useEffect(() => { sessionStorage.setItem('projects_status', statusFilter); }, [statusFilter]);
+  useEffect(() => { sessionStorage.setItem('projects_department', departmentFilter); }, [departmentFilter]);
+
+  useEffect(() => {
+    const restoreScroll = () => {
+      const savedScroll = sessionStorage.getItem('projects_scroll_y');
+      if (savedScroll) {
+        window.scrollTo(0, parseInt(savedScroll, 10));
+      }
+    };
+    
+    let timer: any;
+    if (typeof window !== "undefined") {
+        timer = setTimeout(restoreScroll, 100);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search);
+      if (search !== debouncedSearch) {
+        setDebouncedSearch(search);
+        setPagination((prev) => ({ ...prev, page: 1 }));
+      }
     }, 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, debouncedSearch]);
 
   // Initial fetch of all projects
   useEffect(() => {
-    fetchProjects();
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      fetchProjects(true); // isBackgroundRefresh
+    } else {
+      fetchProjects(false);
+    }
   }, []);
 
   // Filter and pagination logic
@@ -188,9 +238,9 @@ export default function ProjectsPage() {
     ).values(),
   );
 
-  const fetchProjects = async (showLoading: boolean = true) => {
+  const fetchProjects = async (isBackgroundRefresh = false) => {
     try {
-      if (showLoading) setLoading(true);
+      if (!isBackgroundRefresh && allProjects.length === 0) setLoading(true);
 
       const response = await axios.get<ProjectApiResponse>(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/projects/outside`,
@@ -203,6 +253,7 @@ export default function ProjectsPage() {
 
       if (response.data && response.data.data) {
         setAllProjects(response.data.data);
+        sessionStorage.setItem('projects_data', JSON.stringify(response.data.data));
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -297,6 +348,7 @@ export default function ProjectsPage() {
                   <div
                     key={project.id}
                     onClick={() => {
+                      sessionStorage.setItem('projects_scroll_y', String(window.scrollY));
                       setLoadingId(project.id);
                       router.push(`/projects/${project.id}`);
                     }}
